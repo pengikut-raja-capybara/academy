@@ -9,7 +9,6 @@ import {
   Circle,
   ChevronLeft,
   ChevronRight,
-  Menu,
   X,
   ClipboardCheck,
   ExternalLink,
@@ -27,26 +26,6 @@ import type { Lesson, Attachment, Module } from "../types";
 import { resolveAssetUrl } from "../services/cms";
 import { toSafeHtml } from "../utils/markdown";
 import { calculateLessonProgress } from "../utils/progress";
-
-// ─── Helpers ────────────────────────────────────────────
-
-// calcCompletion is now replaced by calculateLessonProgress utility
-
-// ─── Sub-components ─────────────────────────────────────
-
-const MobileTopBar = memo(function MobileTopBar({ title, subtitle, onOpenSidebar }: { title: string; subtitle: string; onOpenSidebar: () => void }) {
-  return (
-    <div className="lg:hidden shrink-0 h-12 bg-card border-b border-border px-4 flex items-center gap-3">
-      <button onClick={onOpenSidebar} className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors">
-        <Menu size={18} />
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-black truncate">{title}</p>
-        <p className="text-[10px] text-muted-foreground font-bold">{subtitle}</p>
-      </div>
-    </div>
-  );
-});
 
 const SidebarDrawer = memo(function SidebarDrawer({
   isOpen,
@@ -376,7 +355,7 @@ const ModuleIntroScreen = memo(function ModuleIntroScreen({
   }[progressState];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center space-y-5 mb-10 sm:mb-14">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-xl shadow-purple-500/30 mb-2">
           <BookOpen size={28} className="text-white" />
@@ -528,10 +507,11 @@ export default function LearningPage() {
   }, [allModules, id]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isOverviewSelected, setIsOverviewSelected] = useState(false);
-  const [isIntroSelected, setIsIntroSelected] = useState(false);
+  const [viewOverride, setViewOverride] = useState<{
+    moduleId: string;
+    mode: "intro" | "overview" | "lesson";
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const hasInitialChecked = useRef<string | null>(null);
 
   // 1. Initial fetch for detail
   useEffect(() => {
@@ -547,47 +527,51 @@ export default function LearningPage() {
     }
   }, [modules, selectedModuleId, dispatch]);
 
-  const allLessons = modules?.lessons || [];
+  const allLessons = useMemo(() => modules?.lessons || [], [modules]);
 
-  // 3. Auto-Resume Logic
+  const autoLessonId = useMemo(() => {
+    const firstIncomplete = allLessons.find((lesson) => {
+      const lessonProgress = progress[lesson.id] ?? (lesson.video ? progress[lesson.video] : undefined);
+      return !lessonProgress?.completed;
+    });
+    return firstIncomplete?.id || allLessons[0]?.id || "";
+  }, [allLessons, progress]);
+
+  const autoViewMode = useMemo<"intro" | "overview" | "lesson">(() => {
+    if (allLessons.length === 0) return "lesson";
+
+    const hasAnyProgress = allLessons.some((lesson) => {
+      const lessonProgress = progress[lesson.id];
+      return lessonProgress && (lessonProgress.completed || (lessonProgress.lastWatchedSec ?? 0) > 0 || Object.keys(lessonProgress.checklist || {}).length > 0);
+    });
+
+    const allLessonsCompleted = allLessons.every((lesson) => {
+      const lessonProgress = progress[lesson.id] ?? (lesson.video ? progress[lesson.video] : undefined);
+      return !!lessonProgress?.completed || (lesson.type !== "exercise" && !lesson.video && (lesson.checklist?.length ?? 0) === 0);
+    });
+
+    if (allLessonsCompleted) return "overview";
+    if (!hasAnyProgress) return "intro";
+    return "lesson";
+  }, [allLessons, progress]);
+
+  const effectiveViewMode = viewOverride && viewOverride.moduleId === id ? viewOverride.mode : autoViewMode;
+
   useEffect(() => {
-    if (allLessons.length === 0 || !id) return;
-    if (hasInitialChecked.current === id) return;
-
-    const hasAnyProgress = allLessons.some((l) => {
-      const lp = progress[l.id];
-      return lp && (lp.completed || (lp.lastWatchedSec ?? 0) > 0 || Object.keys(lp.checklist || {}).length > 0);
-    });
-
-    const firstIncomplete = allLessons.find((l) => {
-      const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
-      return !lp?.completed;
-    });
-
-    if (!firstIncomplete) {
-      // Semua selesai → overview/submit tugas
-      setIsOverviewSelected(true);
-      setIsIntroSelected(false);
-    } else if (!hasAnyProgress) {
-      // Belum ada progress sama sekali → tampilkan intro
-      setIsIntroSelected(true);
-      setIsOverviewSelected(false);
-    } else {
-      // Ada progress sebagian → resume ke pelajaran terakhir
-      dispatch(selectLesson(firstIncomplete.id));
-      setIsIntroSelected(false);
-      setIsOverviewSelected(false);
+    if (!id || allLessons.length === 0 || autoViewMode !== "lesson" || !autoLessonId) return;
+    if (!selectedLessonId || !allLessons.some((lesson) => lesson.id === selectedLessonId)) {
+      dispatch(selectLesson(autoLessonId));
     }
-    hasInitialChecked.current = id;
-  }, [id, allLessons, selectedLessonId, progress, dispatch]);
+  }, [id, allLessons, autoViewMode, autoLessonId, selectedLessonId, dispatch]);
 
   const { selectedLesson, currentIdx } = useMemo(() => {
-    const idx = allLessons.findIndex((l) => l.id === selectedLessonId);
+    const resolvedLessonId = selectedLessonId && allLessons.some((lesson) => lesson.id === selectedLessonId) ? selectedLessonId : autoLessonId;
+    const idx = allLessons.findIndex((l) => l.id === resolvedLessonId);
     return {
       selectedLesson: idx >= 0 ? allLessons[idx] : allLessons[0] || ({} as Lesson),
       currentIdx: Math.max(idx, 0),
     };
-  }, [allLessons, selectedLessonId]);
+  }, [allLessons, selectedLessonId, autoLessonId]);
 
   const { isCompleted } = useMemo(() => calculateLessonProgress(selectedLesson, progress), [selectedLesson, progress]);
   const lessonProgress = progress[selectedLesson.id] ?? (selectedLesson.video ? progress[selectedLesson.video] : undefined);
@@ -621,13 +605,17 @@ export default function LearningPage() {
   const averageScore = exerciseCount > 0 ? totalPercentage / exerciseCount : null;
 
   const handleCloseSidebar = useCallback(() => setSidebarOpen(false), []);
-  const handleOpenSidebar = useCallback(() => setSidebarOpen(true), []);
+
+  useEffect(() => {
+    const handleExternalOpen = () => setSidebarOpen(true);
+    window.addEventListener("prc-open-learning-sidebar", handleExternalOpen);
+    return () => window.removeEventListener("prc-open-learning-sidebar", handleExternalOpen);
+  }, []);
 
   const handleOverviewSelect = useCallback(() => {
-    setIsOverviewSelected(true);
-    setIsIntroSelected(false);
+    if (id) setViewOverride({ moduleId: id, mode: "overview" });
     setSidebarOpen(false);
-  }, []);
+  }, [id]);
 
   const handleStartLearning = useCallback(() => {
     // Cari pelajaran pertama yang belum selesai (resume ke posisi terakhir)
@@ -637,35 +625,32 @@ export default function LearningPage() {
     });
     const target = firstIncomplete || allLessons[0];
     if (target) dispatch(selectLesson(target.id));
-    setIsIntroSelected(false);
-    setIsOverviewSelected(false);
-  }, [allLessons, progress, dispatch]);
+    if (id) setViewOverride({ moduleId: id, mode: "lesson" });
+  }, [allLessons, progress, dispatch, id]);
 
   const handlePrev = useCallback(() => {
-    if (isOverviewSelected) {
-      setIsOverviewSelected(false);
+    if (effectiveViewMode === "overview") {
+      if (id) setViewOverride({ moduleId: id, mode: "lesson" });
     } else if (currentIdx > 0) {
       dispatch(selectLesson(allLessons[currentIdx - 1].id));
     }
-    setIsIntroSelected(false);
     setSidebarOpen(false);
-  }, [isOverviewSelected, currentIdx, allLessons, dispatch]);
+  }, [effectiveViewMode, currentIdx, allLessons, dispatch, id]);
 
   const handleNext = useCallback(() => {
     const isLastLesson = currentIdx === allLessons.length - 1;
-    if (!isOverviewSelected && isLastLesson && isCompleted && allLessonsCompleted) {
-      setIsOverviewSelected(true);
-    } else if (!isOverviewSelected && currentIdx < allLessons.length - 1) {
+    if (effectiveViewMode !== "overview" && isLastLesson && isCompleted && allLessonsCompleted) {
+      if (id) setViewOverride({ moduleId: id, mode: "overview" });
+    } else if (effectiveViewMode !== "overview" && currentIdx < allLessons.length - 1) {
       dispatch(selectLesson(allLessons[currentIdx + 1].id));
     }
-    setIsIntroSelected(false);
     setSidebarOpen(false);
-  }, [isOverviewSelected, currentIdx, allLessons, isCompleted, allLessonsCompleted, dispatch]);
+  }, [effectiveViewMode, currentIdx, allLessons, isCompleted, allLessonsCompleted, dispatch, id]);
 
   // Scroll to top when lesson or view changes
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [selectedLesson?.id, isOverviewSelected, isIntroSelected]);
+  }, [selectedLesson?.id, effectiveViewMode]);
 
   const currentDetailStatus = id ? detailStatus[id] : undefined;
 
@@ -677,7 +662,7 @@ export default function LearningPage() {
 
   if (isDetailLoading) {
     return (
-      <div className="flex h-[calc(100vh-65px)] items-center justify-center bg-background">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Memuat Materi...</p>
@@ -689,65 +674,48 @@ export default function LearningPage() {
   // Jika fetch gagal total dan tidak ada data
   if (!modules) {
     return (
-      <div className="flex h-[calc(100vh-65px)] items-center justify-center bg-background">
+      <div className="flex h-full items-center justify-center bg-background">
         <p className="text-muted-foreground font-bold">Modul tidak ditemukan.</p>
       </div>
     );
   }
 
   const isLastLesson = currentIdx === allLessons.length - 1;
-  const showNextToOverview = !isOverviewSelected && isLastLesson && isCompleted && allLessonsCompleted;
+  const showNextToOverview = effectiveViewMode !== "overview" && isLastLesson && isCompleted && allLessonsCompleted;
 
   return (
-    <div className="flex h-[calc(100vh-57px)] sm:h-[calc(100vh-65px)] overflow-hidden bg-background relative">
+    <div className="flex h-full overflow-hidden bg-background relative">
       <SidebarDrawer
         isOpen={sidebarOpen}
         onClose={handleCloseSidebar}
         onLessonSelect={() => {
+          if (id) setViewOverride({ moduleId: id, mode: "lesson" });
           setSidebarOpen(false);
-          setIsOverviewSelected(false);
-          setIsIntroSelected(false);
         }}
         onOverviewSelect={handleOverviewSelect}
         onIntroSelect={() => {
-          setIsIntroSelected(true);
-          setIsOverviewSelected(false);
+          if (id) setViewOverride({ moduleId: id, mode: "intro" });
           setSidebarOpen(false);
         }}
-        isOverviewSelected={isOverviewSelected}
+        isOverviewSelected={effectiveViewMode === "overview"}
         allLessonsCompleted={allLessonsCompleted}
         hasSubmission={hasSubmission}
         modules={modules}
       />
 
       <div className="flex-1 min-w-0 flex flex-col bg-muted/20 overflow-hidden">
-        <MobileTopBar
-          title={isIntroSelected ? modules.title : isOverviewSelected ? "Kumpulkan Tugas Akhir" : selectedLesson.title}
-          subtitle={isIntroSelected ? "Info Modul" : isOverviewSelected ? "Submisi Modul" : `Materi ${currentIdx + 1} / ${allLessons.length}`}
-          onOpenSidebar={handleOpenSidebar}
-        />
-
         <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar">
-          {isIntroSelected ? (
+          {effectiveViewMode === "intro" ? (
             <ModuleIntroScreen
               moduleTitle={modules.title}
               moduleDescription={modules.description}
               totalLessons={allLessons.length}
               exerciseCount={allLessons.filter((l) => l.type === "exercise").length}
-              progressState={
-                allLessonsCompleted
-                  ? "done"
-                  : allLessons.some((l) => {
-                        const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
-                        return lp?.completed || (lp?.lastWatchedSec ?? 0) > 0 || Object.keys(lp?.checklist || {}).length > 0;
-                      })
-                    ? "partial"
-                    : "none"
-              }
+              progressState={allLessonsCompleted ? "done" : autoViewMode === "lesson" ? "partial" : "none"}
               onStart={handleStartLearning}
               onViewSummary={handleOverviewSelect}
             />
-          ) : isOverviewSelected ? (
+          ) : effectiveViewMode === "overview" ? (
             <ModuleOverviewScreen
               moduleTitle={modules.title}
               moduleDescription={modules.description}
@@ -778,11 +746,11 @@ export default function LearningPage() {
           )}
         </div>
 
-        {!isIntroSelected && (
+        {effectiveViewMode !== "intro" && (
           <NavigationFooter
-            currentIdx={isOverviewSelected ? allLessons.length : currentIdx}
+            currentIdx={effectiveViewMode === "overview" ? allLessons.length : currentIdx}
             totalLessons={allLessons.length}
-            isCompleted={isOverviewSelected ? true : showNextToOverview ? true : isCompleted}
+            isCompleted={effectiveViewMode === "overview" ? true : showNextToOverview ? true : isCompleted}
             onPrev={handlePrev}
             onNext={handleNext}
           />

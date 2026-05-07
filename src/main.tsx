@@ -5,12 +5,15 @@ import { Provider } from "react-redux";
 import { store } from "./store";
 import "./index.css";
 import App from "./App.tsx";
+import { GitHubPagesRedirectHandler } from "./components/common/GitHubPagesRedirectHandler";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Provider store={store}>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <App />
+        <GitHubPagesRedirectHandler>
+          <App />
+        </GitHubPagesRedirectHandler>
       </BrowserRouter>
     </Provider>
   </StrictMode>,

@@ -20,7 +20,7 @@ export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelec
   const { progress, selectedLessonId } = useAppSelector((state) => state.learning);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rounded-3xl border border-border/60 bg-gradient-to-b from-blue-500/5 via-background to-purple-500/5 p-3 sm:p-4 shadow-[0_12px_40px_rgba(15,23,42,0.04)]">
       <button
         onClick={onIntroSelect}
         className="w-full flex items-center justify-between px-2 mb-4 group text-left hover:opacity-80 transition-opacity"
@@ -75,10 +75,10 @@ export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelec
                     disabled={isLocked}
                     className={`w-full text-left transition-all relative p-3 rounded-xl border ${
                       isLocked
-                        ? "opacity-40 cursor-not-allowed bg-muted/20"
-                        : isSelected
-                          ? "bg-primary/10 text-primary border-primary shadow-sm"
-                          : "bg-transparent text-card-foreground border-transparent hover:bg-muted/50"
+                          ? "opacity-40 cursor-not-allowed bg-muted/20"
+                          : isSelected
+                            ? "bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 text-primary border-primary/30 shadow-sm"
+                            : "bg-card/70 text-card-foreground border-border/40 hover:bg-muted/50"
                     }`}
                   >
                     <div className="flex gap-3 items-center">
@@ -123,7 +123,7 @@ export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelec
                 <button
                   onClick={() => onOverviewSelect?.()}
                   className={`w-full text-left transition-all relative p-3 rounded-xl border ${
-                    isOverviewSelected ? "bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-purple-500/30 shadow-sm" : "bg-transparent border-transparent hover:bg-muted/50"
+                      isOverviewSelected ? "bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-purple-500/30 shadow-sm" : "bg-card/70 border-border/40 hover:bg-muted/50"
                   }`}
                 >
                   <div className="flex gap-3 items-center">

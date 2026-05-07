@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router";
 import ThemeToggle from "./ThemeToggle";
-import { Sparkles, GitForkIcon } from "lucide-react";
+import { Sparkles, GitForkIcon, Menu } from "lucide-react";
 
 export default function Header() {
   const location = useLocation();
@@ -13,6 +13,17 @@ export default function Header() {
       <div className="h-[2px] w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-80" />
 
       <nav className="mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-8">
+        {location.pathname.startsWith("/learning") && (
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("prc-open-learning-sidebar"))}
+            className="lg:hidden inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all duration-300 border border-border bg-background hover:bg-muted/50"
+            aria-label="Buka daftar materi"
+          >
+            <Menu size={18} />
+            <span className="hidden sm:inline">Menu</span>
+          </button>
+        )}
         <div className="flex items-center gap-10">
           <Link to="/" className="relative group flex items-center gap-2">
             {/* Logo Glow */}
@@ -44,6 +55,7 @@ export default function Header() {
               relative overflow-hidden px-5 py-2 rounded-xl text-sm font-black transition-all duration-300
               flex items-center gap-2 shadow-lg active:scale-95 group
               bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 text-white
+              ${location.pathname.startsWith("/learning") ? "hidden lg:flex" : ""}
               ${
                 location.pathname.startsWith("/learning")
                   ? "shadow-purple-500/50 ring-2 ring-purple-500/20 ring-offset-2 ring-offset-background"
@@ -53,7 +65,7 @@ export default function Header() {
 
             `}
           >
-            <span className="relative z-10">Mulai Belajar</span>
+            <span className="relative z-10">Modul</span>
             <Sparkles size={14} className={`relative z-10 transition-transform duration-500 ${location.pathname.startsWith("/learning") ? "rotate-12" : "group-hover:rotate-45"}`} />
 
             {/* Animated Background Shine */}

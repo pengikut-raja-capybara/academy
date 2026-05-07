@@ -4,24 +4,24 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 220 32% 96.5%;
     --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
+    --card: 220 28% 98.8%;
     --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
+    --popover: 220 28% 98.8%;
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    --secondary: 220 32% 95%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    --muted: 220 32% 95%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    --accent: 220 32% 95%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 214.3 24% 84%;
+    --input: 214.3 24% 84%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.75rem;
   }
@@ -58,6 +58,20 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  html.light body {
+    background-image:
+      radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 32%),
+      radial-gradient(circle at top right, rgba(168, 85, 247, 0.14), transparent 28%),
+      radial-gradient(circle at 50% 18%, rgba(244, 114, 182, 0.08), transparent 22%),
+      radial-gradient(circle at bottom center, rgba(14, 165, 233, 0.06), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+    background-attachment: fixed;
+  }
+
+  html.dark body {
+    background-image: none;
   }
 }
 
@@ -161,4 +175,19 @@
 
 .animate-shine {
   animation: shine 3s infinite linear;
-}
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter 240ms ease-out;
+  will-change: opacity;
+}
