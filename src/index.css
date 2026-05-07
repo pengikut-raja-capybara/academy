@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@variant dark (&:is(.dark, .dark *));
 
 @layer base {
   :root {
@@ -51,6 +53,7 @@
   * {
     border-color: hsl(var(--border));
   }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
@@ -59,21 +62,51 @@
 }
 
 @keyframes blob {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
 }
 
 @keyframes blob-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-30px, 50px) scale(0.9); }
-  66% { transform: translate(20px, -20px) scale(1.1); }
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-30px, 50px) scale(0.9);
+  }
+
+  66% {
+    transform: translate(20px, -20px) scale(1.1);
+  }
 }
 
 @keyframes blob-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(50px, 20px) scale(1.05); }
-  66% { transform: translate(-50px, -30px) scale(0.95); }
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(50px, 20px) scale(1.05);
+  }
+
+  66% {
+    transform: translate(-50px, -30px) scale(0.95);
+  }
 }
 
 .animate-blob {

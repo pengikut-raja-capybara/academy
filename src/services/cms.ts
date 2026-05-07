@@ -149,6 +149,17 @@ export class CmsFetcher {
     this.basePath = basePath;
   }
 
+  async fetchIndex(source: CmsSourceConfig = this.defaultSource): Promise<any[]> {
+    const latestRef = await getLatestContentRef(source);
+    try {
+      const index = await this.fetchFile<{ modules: any[] }>('content-index.json', source, latestRef);
+      return index?.modules || [];
+    } catch (error) {
+      console.warn('Failed to fetch index, falling back to empty list');
+      return [];
+    }
+  }
+
   async fetchCollection<T>(folder: string, source: CmsSourceConfig = this.defaultSource): Promise<T[]> {
     const latestRef = await getLatestContentRef(source);
     
@@ -178,6 +189,14 @@ export class CmsFetcher {
     );
   }
 
+  async fetchEntry<T>(folder: string, slug: string, source: CmsSourceConfig = this.defaultSource): Promise<T> {
+    const safeSlug = slug.trim();
+    if (!safeSlug) throw new Error('Invalid entry slug.');
+    const folderPath = `${this.basePath}/${folder}`.replace(/^\/+|\/+$/g, '');
+    const path = `${folderPath}/${safeSlug}.json`;
+    return this.fetchFile<T>(path, source);
+  }
+
   async fetchFile<T>(path: string, source: CmsSourceConfig = this.defaultSource, ref?: string): Promise<T> {
     const targetRef = ref ?? (await getLatestContentRef(source));
     try {
@@ -192,6 +211,14 @@ export class CmsFetcher {
 
 export const academyCms = new CmsFetcher(ACADEMY_CMS_SOURCE, 'content');
 
+export async function fetchModuleIndex(): Promise<any[]> {
+  return academyCms.fetchIndex();
+}
+
 export async function fetchAllModules(): Promise<Module[]> {
   return academyCms.fetchCollection<Module>('modules');
+}
+
+export async function fetchModuleBySlug(slug: string): Promise<Module> {
+  return academyCms.fetchEntry<Module>('modules', slug);
 }

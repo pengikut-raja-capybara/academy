@@ -6,7 +6,7 @@ export default function ProgressCard({ module }: { module?: Module }) {
   const { allModules, selectedModuleId, progress } = useAppSelector((state) => state.learning);
   const activeModule = module || allModules.find((m) => m.id === selectedModuleId) || allModules[0];
 
-  const allLessons = activeModule.lessons;
+  const allLessons = activeModule?.lessons || [];
 
   const totalProgress = allLessons.reduce((acc: number, lesson: Lesson) => {
     const lessonProgress = progress[lesson.id] || (lesson.video ? progress[lesson.video] : undefined);

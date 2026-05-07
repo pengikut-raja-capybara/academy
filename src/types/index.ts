@@ -37,7 +37,7 @@ export type Module = {
   submissionUrl?: string;
   submissionDescription?: string;
   submissionAttachments?: Attachment[];
-  lessons: Lesson[];
+  lessons?: Lesson[];
 };
 
 export type ProgressMap = Record<string, {

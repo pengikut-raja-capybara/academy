@@ -7,26 +7,30 @@ interface LessonSidebarProps {
   modules: Module;
   onLessonSelect?: () => void;
   onOverviewSelect?: () => void;
+  onIntroSelect?: () => void;
   isOverviewSelected?: boolean;
   allLessonsCompleted?: boolean;
   hasSubmission?: boolean;
 }
 
-export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelect, isOverviewSelected, allLessonsCompleted, hasSubmission }: LessonSidebarProps) {
+export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelect, onIntroSelect, isOverviewSelected, allLessonsCompleted, hasSubmission }: LessonSidebarProps) {
   const dispatch = useAppDispatch();
   const { progress, selectedLessonId } = useAppSelector((state) => state.learning);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between px-2 mb-4">
-        <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground">{modules.title}</h2>
-        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">{modules.lessons.length} materi</span>
-      </div>
+      <button
+        onClick={onIntroSelect}
+        className="w-full flex items-center justify-between px-2 mb-4 group text-left hover:opacity-80 transition-opacity"
+      >
+        <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">{modules.title}</h2>
+        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">{modules.lessons?.length || 0} materi</span>
+      </button>
 
       <div className="space-y-8">
         <div className="space-y-3">
           <ul className="space-y-1">
-            {modules.lessons.map((lesson: Lesson, index: number) => {
+            {modules.lessons?.map((lesson: Lesson, index: number) => {
               const lessonProgress = progress[lesson.id] || (lesson.video ? progress[lesson.video] : undefined);
               const currentPos = lessonProgress?.lastWatchedSec || 0;
               const duration = lessonProgress?.duration || lesson.duration || 1;
@@ -55,8 +59,10 @@ export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelec
               const isSelected = !isOverviewSelected && selectedLessonId === lesson.id;
 
               // Lock System: Locked if previous lesson is not completed
-              const prevLesson = index > 0 ? modules.lessons[index - 1] : null;
-              const prevProgress = prevLesson ? progress[prevLesson.id] || (prevLesson.video ? progress[prevLesson.video] : undefined) : null;
+              // NOTE: Hanya pakai lesson.id untuk lock check (bukan video ID)
+              // agar data lama di localStorage tidak mempengaruhi sistem kunci.
+              const prevLesson = index > 0 ? modules.lessons?.[index - 1] : null;
+              const prevProgress = prevLesson ? progress[prevLesson.id] : null;
 
               const prevCurrentPos = prevProgress?.lastWatchedSec || 0;
               const prevDuration = prevProgress?.duration || prevLesson?.duration || 1;

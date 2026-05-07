@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import type { Module, ProgressMap, Theme } from "../../types";
-import { ALL_MODULES } from "../../data/lessons";
-import { fetchAllModules } from "../../services/cms";
+import { fetchModuleIndex, fetchModuleBySlug } from "../../services/cms";
 
 interface LearningState {
   allModules: Module[];
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  detailStatus: Record<string, 'loading' | 'succeeded' | 'failed'>;
   error: string | null;
   selectedModuleId: string;
   progress: ProgressMap;
@@ -16,7 +16,11 @@ interface LearningState {
 const STORAGE_KEY = "capybara_academy_state";
 
 export const fetchModules = createAsyncThunk('learning/fetchModules', async () => {
-  return await fetchAllModules();
+  return await fetchModuleIndex();
+});
+
+export const fetchModuleDetail = createAsyncThunk('learning/fetchModuleDetail', async (slug: string) => {
+  return await fetchModuleBySlug(slug);
 });
 
 const loadState = (): Partial<LearningState> => {
@@ -34,6 +38,7 @@ const savedState = loadState();
 const initialState: LearningState = {
   allModules: [], // Dimulai dari kosong agar sistem melakukan fetch dan menampilkan skeleton
   status: 'idle',
+  detailStatus: {},
   error: null,
   selectedModuleId: savedState.selectedModuleId || "",
   progress: savedState.progress || {},
@@ -57,7 +62,7 @@ export const learningSlice = createSlice({
       const { videoId, second, duration } = action.payload;
       let lesson;
       for (const m of state.allModules) {
-        lesson = m.lessons.find((l) => l.video === videoId);
+        lesson = m.lessons?.find((l) => l.video === videoId);
         if (lesson) break;
       }
       if (!lesson) return;
@@ -113,7 +118,7 @@ export const learningSlice = createSlice({
       // Re-check completion when checklist is toggled
       let lesson;
       for (const m of state.allModules) {
-        lesson = m.lessons.find(l => l.id === lessonId || l.video === lessonId);
+        lesson = m.lessons?.find(l => l.id === lessonId || l.video === lessonId);
         if (lesson) break;
       }
       if (lesson) {
@@ -135,7 +140,7 @@ export const learningSlice = createSlice({
       const { lessonId, answers, score } = action.payload;
       let lesson;
       for (const m of state.allModules) {
-        lesson = m.lessons.find((l) => l.id === lessonId);
+        lesson = m.lessons?.find((l) => l.id === lessonId);
         if (lesson) break;
       }
       if (!lesson) return;
@@ -172,7 +177,13 @@ export const learningSlice = createSlice({
       })
       .addCase(fetchModules.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.allModules = action.payload;
+        
+        // Merge: jangan timpa lessons yang sudah di-fetch sebelumnya
+        state.allModules = (action.payload as Module[]).map((indexMod) => {
+          const existing = state.allModules.find(m => m.id === indexMod.id || m.slug === indexMod.slug);
+          // Kalau modul ini sudah punya lessons (dari fetchModuleDetail), pertahankan
+          return existing?.lessons ? { ...indexMod, lessons: existing.lessons } : indexMod;
+        });
         
         // If current selectedModuleId is invalid, reset it
         if (!state.allModules.some(m => m.id === state.selectedModuleId)) {
@@ -182,6 +193,23 @@ export const learningSlice = createSlice({
       .addCase(fetchModules.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message || 'Failed to fetch modules';
+      })
+      .addCase(fetchModuleDetail.pending, (state, action) => {
+        state.detailStatus[action.meta.arg] = 'loading';
+      })
+      .addCase(fetchModuleDetail.fulfilled, (state, action) => {
+        state.detailStatus[action.meta.arg] = 'succeeded';
+        const fullModule = action.payload;
+        const index = state.allModules.findIndex(m => m.id === fullModule.id || m.slug === fullModule.slug);
+        
+        if (index !== -1) {
+          state.allModules[index] = { ...state.allModules[index], ...fullModule };
+        } else {
+          state.allModules.push(fullModule);
+        }
+      })
+      .addCase(fetchModuleDetail.rejected, (state, action) => {
+        state.detailStatus[action.meta.arg] = 'failed';
       });
   },
 });

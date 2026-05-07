@@ -224,13 +224,10 @@ export default function VideoPlayer({ lessonId, video }: Props) {
       {/* Controls Row */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3 sm:gap-5">
-          <button 
-            onClick={togglePlay} 
-            className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-90 ${isWide ? "text-white hover:bg-white/10" : "text-primary hover:bg-primary/10"}`}
-          >
+          <button onClick={togglePlay} className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-90 ${isWide ? "text-white hover:bg-white/10" : "text-primary hover:bg-primary/10"}`}>
             {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
           </button>
-          
+
           <div className="flex items-center gap-1.5 font-medium text-[11px] sm:text-xs tracking-wide">
             <span className={isWide ? "text-white" : "text-foreground"}>{formatTime(currentSeconds)}</span>
             <span className={isWide ? "text-white/40" : "text-muted-foreground/50"}>/</span>
@@ -269,7 +266,7 @@ export default function VideoPlayer({ lessonId, video }: Props) {
           <button
             onClick={toggleWide}
             className={`p-1.5 sm:p-2 rounded-full transition-all ${isWide ? "text-white/70 hover:text-white hover:bg-white/10" : "text-muted-foreground hover:text-primary hover:bg-primary/10"}`}
-            title={isWide ? "Mode Normal" : "Mode Cinema"}
+            title={isWide ? "Mode Normal" : "Mode Studio"}
           >
             {isWide ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>

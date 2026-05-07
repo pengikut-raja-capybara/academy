@@ -4,11 +4,28 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import VideoPlayer from "../components/video/VideoPlayer";
 import LessonSidebar from "../components/video/LessonSidebar";
 import ProgressCard from "../components/video/ProgressCard";
-import { CheckCircle2, Circle, ChevronLeft, ChevronRight, Menu, X, ClipboardCheck, ExternalLink, Download, FileText, FileArchive, Image as ImageIcon, Link as LinkIcon, Paperclip } from "lucide-react";
-import { toggleChecklistItem, selectLesson, selectModule, completeExercise, resetExercise } from "../features/learning/learningSlice";
+import {
+  CheckCircle2,
+  Circle,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  ClipboardCheck,
+  ExternalLink,
+  Download,
+  FileText,
+  FileArchive,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Paperclip,
+  BookOpen,
+} from "lucide-react";
+import { toggleChecklistItem, selectLesson, selectModule, completeExercise, resetExercise, fetchModuleDetail } from "../features/learning/learningSlice";
 import QuizPlayer from "../components/exercise/QuizPlayer";
 import type { Lesson, ProgressMap, Attachment, Module } from "../types";
 import { resolveAssetUrl } from "../services/cms";
+import { toSafeHtml } from "../utils/markdown";
 
 // ─── Helpers ────────────────────────────────────────────
 
@@ -60,6 +77,7 @@ const SidebarDrawer = memo(function SidebarDrawer({
   onClose,
   onLessonSelect,
   onOverviewSelect,
+  onIntroSelect,
   isOverviewSelected,
   allLessonsCompleted,
   hasSubmission,
@@ -69,6 +87,7 @@ const SidebarDrawer = memo(function SidebarDrawer({
   onClose: () => void;
   onLessonSelect: () => void;
   onOverviewSelect: () => void;
+  onIntroSelect: () => void;
   isOverviewSelected: boolean;
   allLessonsCompleted: boolean;
   hasSubmission: boolean;
@@ -111,6 +130,7 @@ const SidebarDrawer = memo(function SidebarDrawer({
             modules={modules}
             onLessonSelect={onLessonSelect}
             onOverviewSelect={onOverviewSelect}
+            onIntroSelect={onIntroSelect}
             isOverviewSelected={isOverviewSelected}
             allLessonsCompleted={allLessonsCompleted}
             hasSubmission={hasSubmission}
@@ -183,7 +203,11 @@ const LessonContent = memo(function LessonContent({
               MATERI {currentIdx + 1} / {totalLessons}
             </div>
           </div>
-          <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap text-sm sm:text-lg font-medium">{lesson.description || "Tidak ada deskripsi tambahan untuk materi ini."}</p>
+          {lesson.description ? (
+            <div className="prose prose-sm sm:prose-lg dark:prose-invert max-w-none text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: toSafeHtml(lesson.description) }} />
+          ) : (
+            <p className="text-muted-foreground text-sm sm:text-base font-medium">Tidak ada deskripsi tambahan untuk materi ini.</p>
+          )}
         </div>
       </>
     );
@@ -193,10 +217,19 @@ const LessonContent = memo(function LessonContent({
     <div className="bg-card border border-border p-6 sm:p-12 rounded-2xl sm:rounded-3xl shadow-xl space-y-6 sm:space-y-8 min-h-[300px] sm:min-h-[500px]">
       <div className="space-y-3 sm:space-y-4">
         <h1 className="text-3xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent pb-1">{lesson.title}</h1>
-        <p className="text-base sm:text-xl text-muted-foreground font-medium leading-relaxed">{lesson.description}</p>
+        {lesson.description && (
+          <div
+            className="prose prose-sm dark:prose-invert max-w-none text-base sm:text-xl text-muted-foreground font-medium leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: toSafeHtml(lesson.description) }}
+          />
+        )}
       </div>
       <div className="prose prose-sm sm:prose-lg dark:prose-invert max-w-none border-t border-border pt-6 sm:pt-10">
-        <div className="text-base sm:text-lg font-medium leading-loose whitespace-pre-wrap">{lesson.content || "Materi ini tidak memiliki konten teks."}</div>
+        {lesson.content ? (
+          <div dangerouslySetInnerHTML={{ __html: toSafeHtml(lesson.content) }} />
+        ) : (
+          <p className="text-base sm:text-lg font-medium text-muted-foreground">Materi ini tidak memiliki konten teks.</p>
+        )}
       </div>
     </div>
   );
@@ -335,7 +368,75 @@ const NavigationFooter = memo(function NavigationFooter({
   );
 });
 
-// ─── Module Overview Screen ──────────────────────────────
+// ─── Module Intro Screen ──────────────────────────────────
+
+const ModuleIntroScreen = memo(function ModuleIntroScreen({
+  moduleTitle,
+  moduleDescription,
+  totalLessons,
+  exerciseCount,
+  progressState,
+  onStart,
+  onViewSummary,
+}: {
+  moduleTitle: string;
+  moduleDescription?: string;
+  totalLessons: number;
+  exerciseCount: number;
+  progressState: "none" | "partial" | "done";
+  onStart: () => void;
+  onViewSummary: () => void;
+}) {
+  const buttonConfig = {
+    none: { label: "Mulai Belajar", icon: <ChevronRight size={20} />, action: onStart },
+    partial: { label: "Lanjut Belajar", icon: <ChevronRight size={20} />, action: onStart },
+    done: { label: "Lihat Ringkasan", icon: <ChevronRight size={20} />, action: onViewSummary },
+  }[progressState];
+
+  const badgeConfig = {
+    none: { text: "Selamat Datang", color: "text-blue-500" },
+    partial: { text: "Lanjutkan Belajar", color: "text-amber-500" },
+    done: { text: "Selesai", color: "text-green-500" },
+  }[progressState];
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="text-center space-y-5 mb-10 sm:mb-14">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-xl shadow-purple-500/30 mb-2">
+          <BookOpen size={28} className="text-white" />
+        </div>
+        <p className={`text-[11px] font-black uppercase tracking-widest ${badgeConfig.color}`}>{badgeConfig.text}</p>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{moduleTitle}</h1>
+        {moduleDescription && <p className="text-muted-foreground font-medium text-sm sm:text-sm max-w-2xl mx-auto leading-relaxed whitespace-pre-wrap">{moduleDescription}</p>}
+      </div>
+
+      <div className={`grid gap-3 sm:gap-4 mb-10 sm:mb-14 ${exerciseCount > 0 ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"}`}>
+        <div className="bg-card border border-border rounded-2xl p-2 text-center space-y-1 shadow-sm">
+          <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{totalLessons}</div>
+          <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Total Materi</p>
+        </div>
+        {exerciseCount > 0 && (
+          <div className="bg-card border border-border rounded-2xl p-2 text-center space-y-1 shadow-sm">
+            <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">{exerciseCount}</div>
+            <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Latihan Soal</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-center">
+        <button
+          onClick={buttonConfig.action}
+          className="cursor-pointer inline-flex items-center gap-3 py-4 px-10 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 text-white rounded-2xl font-black text-base hover:shadow-xl hover:shadow-purple-500/30 hover:scale-[1.03] transition-all duration-200"
+        >
+          {buttonConfig.label}
+          {buttonConfig.icon}
+        </button>
+      </div>
+    </div>
+  );
+});
+
+// ─── Module Overview Screen ──────────────────────────────────
 
 const ModuleOverviewScreen = memo(function ModuleOverviewScreen({
   moduleTitle,
@@ -444,67 +545,70 @@ const ModuleOverviewScreen = memo(function ModuleOverviewScreen({
 export default function LearningPage() {
   const { id } = useParams();
   const dispatch = useAppDispatch();
-  const { allModules, progress, selectedLessonId, selectedModuleId, status } = useAppSelector((state) => state.learning);
+  const { allModules, progress, selectedLessonId, selectedModuleId, detailStatus } = useAppSelector((state) => state.learning);
 
-  const modules = useMemo(() => allModules.find((m) => m.id === id) || allModules[0], [allModules, id]);
-  
+  const modules = useMemo(() => {
+    return allModules.find((m) => m.slug === id || m.id === id);
+  }, [allModules, id]);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isOverviewSelected, setIsOverviewSelected] = useState(false);
+  const [isIntroSelected, setIsIntroSelected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  if (!modules || status === 'loading') {
-    return (
-      <div className="flex h-[calc(100vh-65px)] items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-           <p className="text-sm font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Memuat Materi...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const allLessons = modules.lessons;
-
-  // Sync Module from URL to Redux
-  useEffect(() => {
-    if (id && id !== selectedModuleId) {
-      dispatch(selectModule(id));
-    }
-  }, [id, selectedModuleId, dispatch]);
-
   const hasInitialChecked = useRef<string | null>(null);
 
-  // Auto-Resume: Check status on initial module entry or refresh
+  // 1. Initial fetch for detail
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchModuleDetail(id));
+    }
+  }, [id, dispatch]);
+
+  // 2. Sync Module from URL to Redux
+  useEffect(() => {
+    if (modules && modules.id !== selectedModuleId) {
+      dispatch(selectModule(modules.id));
+    }
+  }, [modules, selectedModuleId, dispatch]);
+
+  const allLessons = modules?.lessons || [];
+
+  // 3. Auto-Resume Logic
   useEffect(() => {
     if (allLessons.length === 0 || !id) return;
-
-    // Only perform the auto-navigation once per module visit/refresh
     if (hasInitialChecked.current === id) return;
 
-    const isLessonInModule = allLessons.some((l) => l.id === selectedLessonId);
+    const hasAnyProgress = allLessons.some((l) => {
+      const lp = progress[l.id];
+      return lp && (lp.completed || (lp.lastWatchedSec ?? 0) > 0 || Object.keys(lp.checklist || {}).length > 0);
+    });
 
-    // Find first lesson that is not completed
     const firstIncomplete = allLessons.find((l) => {
       const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
       return !lp?.completed;
     });
 
     if (!firstIncomplete) {
-      // All completed! Always default to overview on entry
+      // Semua selesai → overview/submit tugas
       setIsOverviewSelected(true);
-    } else if (!isLessonInModule) {
-      // Different module context, find where we left off
+      setIsIntroSelected(false);
+    } else if (!hasAnyProgress) {
+      // Belum ada progress sama sekali → tampilkan intro
+      setIsIntroSelected(true);
+      setIsOverviewSelected(false);
+    } else {
+      // Ada progress sebagian → resume ke pelajaran terakhir
       dispatch(selectLesson(firstIncomplete.id));
+      setIsIntroSelected(false);
       setIsOverviewSelected(false);
     }
-
     hasInitialChecked.current = id;
   }, [id, allLessons, selectedLessonId, progress, dispatch]);
 
   const { selectedLesson, currentIdx } = useMemo(() => {
     const idx = allLessons.findIndex((l) => l.id === selectedLessonId);
     return {
-      selectedLesson: idx >= 0 ? allLessons[idx] : allLessons[0],
+      selectedLesson: idx >= 0 ? allLessons[idx] : allLessons[0] || ({} as Lesson),
       currentIdx: Math.max(idx, 0),
     };
   }, [allLessons, selectedLessonId]);
@@ -513,6 +617,7 @@ export default function LearningPage() {
 
   const allLessonsCompleted = useMemo(
     () =>
+      allLessons.length > 0 &&
       allLessons.every((l) => {
         const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
         return !!lp?.completed || (l.type !== "exercise" && !l.video && (l.checklist?.length ?? 0) === 0);
@@ -520,7 +625,7 @@ export default function LearningPage() {
     [allLessons, progress],
   );
 
-  const hasSubmission = !!modules.submissionUrl;
+  const hasSubmission = !!modules?.submissionUrl;
 
   const { totalPercentage, exerciseCount } = useMemo(() => {
     let totalPct = 0;
@@ -543,8 +648,21 @@ export default function LearningPage() {
 
   const handleOverviewSelect = useCallback(() => {
     setIsOverviewSelected(true);
+    setIsIntroSelected(false);
     setSidebarOpen(false);
   }, []);
+
+  const handleStartLearning = useCallback(() => {
+    // Cari pelajaran pertama yang belum selesai (resume ke posisi terakhir)
+    const firstIncomplete = allLessons.find((l) => {
+      const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
+      return !lp?.completed;
+    });
+    const target = firstIncomplete || allLessons[0];
+    if (target) dispatch(selectLesson(target.id));
+    setIsIntroSelected(false);
+    setIsOverviewSelected(false);
+  }, [allLessons, progress, dispatch]);
 
   const handlePrev = useCallback(() => {
     if (isOverviewSelected) {
@@ -552,6 +670,7 @@ export default function LearningPage() {
     } else if (currentIdx > 0) {
       dispatch(selectLesson(allLessons[currentIdx - 1].id));
     }
+    setIsIntroSelected(false);
     setSidebarOpen(false);
   }, [isOverviewSelected, currentIdx, allLessons, dispatch]);
 
@@ -562,13 +681,42 @@ export default function LearningPage() {
     } else if (!isOverviewSelected && currentIdx < allLessons.length - 1) {
       dispatch(selectLesson(allLessons[currentIdx + 1].id));
     }
+    setIsIntroSelected(false);
     setSidebarOpen(false);
   }, [isOverviewSelected, currentIdx, allLessons, isCompleted, allLessonsCompleted, dispatch]);
 
   // Scroll to top when lesson or view changes
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }, [selectedLesson.id, isOverviewSelected]);
+  }, [selectedLesson?.id, isOverviewSelected, isIntroSelected]);
+
+  const currentDetailStatus = id ? detailStatus[id] : undefined;
+
+  // --- LOADING GUARD ---
+  // Tampilkan spinner jika:
+  // 1. Sedang fetching (status 'loading'), ATAU
+  // 2. Belum ada lessons DAN belum ada status sama sekali (belum pernah di-fetch)
+  const isDetailLoading = currentDetailStatus === "loading" || (!modules?.lessons?.length && currentDetailStatus !== "succeeded" && currentDetailStatus !== "failed");
+
+  if (isDetailLoading) {
+    return (
+      <div className="flex h-[calc(100vh-65px)] items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Memuat Materi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Jika fetch gagal total dan tidak ada data
+  if (!modules) {
+    return (
+      <div className="flex h-[calc(100vh-65px)] items-center justify-center bg-background">
+        <p className="text-muted-foreground font-bold">Modul tidak ditemukan.</p>
+      </div>
+    );
+  }
 
   const isLastLesson = currentIdx === allLessons.length - 1;
   const showNextToOverview = !isOverviewSelected && isLastLesson && isCompleted && allLessonsCompleted;
@@ -581,8 +729,14 @@ export default function LearningPage() {
         onLessonSelect={() => {
           setSidebarOpen(false);
           setIsOverviewSelected(false);
+          setIsIntroSelected(false);
         }}
         onOverviewSelect={handleOverviewSelect}
+        onIntroSelect={() => {
+          setIsIntroSelected(true);
+          setIsOverviewSelected(false);
+          setSidebarOpen(false);
+        }}
         isOverviewSelected={isOverviewSelected}
         allLessonsCompleted={allLessonsCompleted}
         hasSubmission={hasSubmission}
@@ -591,13 +745,32 @@ export default function LearningPage() {
 
       <div className="flex-1 min-w-0 flex flex-col bg-muted/20 overflow-hidden">
         <MobileTopBar
-          title={isOverviewSelected ? "Kumpulkan Tugas Akhir" : selectedLesson.title}
-          subtitle={isOverviewSelected ? "Submisi Modul" : `Materi ${currentIdx + 1} / ${allLessons.length}`}
+          title={isIntroSelected ? modules.title : isOverviewSelected ? "Kumpulkan Tugas Akhir" : selectedLesson.title}
+          subtitle={isIntroSelected ? "Info Modul" : isOverviewSelected ? "Submisi Modul" : `Materi ${currentIdx + 1} / ${allLessons.length}`}
           onOpenSidebar={handleOpenSidebar}
         />
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar">
-          {isOverviewSelected ? (
+          {isIntroSelected ? (
+            <ModuleIntroScreen
+              moduleTitle={modules.title}
+              moduleDescription={modules.description}
+              totalLessons={allLessons.length}
+              exerciseCount={allLessons.filter((l) => l.type === "exercise").length}
+              progressState={
+                allLessonsCompleted
+                  ? "done"
+                  : allLessons.some((l) => {
+                        const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
+                        return lp?.completed || (lp?.lastWatchedSec ?? 0) > 0 || Object.keys(lp?.checklist || {}).length > 0;
+                      })
+                    ? "partial"
+                    : "none"
+              }
+              onStart={handleStartLearning}
+              onViewSummary={handleOverviewSelect}
+            />
+          ) : isOverviewSelected ? (
             <ModuleOverviewScreen
               moduleTitle={modules.title}
               moduleDescription={modules.description}
@@ -628,13 +801,15 @@ export default function LearningPage() {
           )}
         </div>
 
-        <NavigationFooter
-          currentIdx={isOverviewSelected ? allLessons.length : currentIdx}
-          totalLessons={allLessons.length + (hasSubmission ? 1 : 0)}
-          isCompleted={isOverviewSelected ? true : showNextToOverview ? true : isCompleted}
-          onPrev={handlePrev}
-          onNext={handleNext}
-        />
+        {!isIntroSelected && (
+          <NavigationFooter
+            currentIdx={isOverviewSelected ? allLessons.length : currentIdx}
+            totalLessons={allLessons.length + (hasSubmission ? 1 : 0)}
+            isCompleted={isOverviewSelected ? true : showNextToOverview ? true : isCompleted}
+            onPrev={handlePrev}
+            onNext={handleNext}
+          />
+        )}
       </div>
     </div>
   );

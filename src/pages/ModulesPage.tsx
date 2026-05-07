@@ -10,7 +10,7 @@ const ModuleCard = memo(function ModuleCard({ mod, onStart }: { mod: Module & { 
   const coverImage = isHtml ? "/images/html_cover.png" : "/images/css_cover.png";
   return (
     <div
-      onClick={() => onStart(mod.id)}
+      onClick={() => onStart(mod.slug)}
       className="cursor-pointer group relative rounded-3xl overflow-hidden hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full bg-card border border-border"
     >
       {/* Top Header with Image */}
@@ -82,16 +82,19 @@ export default function ModulesPage() {
   // Calculate progress for each module
   const moduleProgress = allModules
     .map((mod) => {
-      const totalLessons = mod.lessons.length;
-      const completedLessons = mod.lessons.filter((l) => progress[l.id]?.completed).length;
+      const totalLessons = mod.lessons?.length || 0;
+      const completedLessons = mod.lessons?.filter((l) => progress[l.id]?.completed).length || 0;
       const percentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
       return { ...mod, percentage, completedLessons, totalLessons };
     })
     .filter((mod) => mod.title.toLowerCase().includes(searchQuery.toLowerCase()) || mod.description?.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const handleStart = (moduleId: string) => {
-    dispatch(selectModule(moduleId));
-    navigate(`/learning/${moduleId}`);
+  const handleStart = (slug: string) => {
+    const mod = allModules.find(m => m.slug === slug || m.id === slug);
+    if (mod) {
+      dispatch(selectModule(mod.id));
+      navigate(`/learning/${mod.slug}`);
+    }
   };
 
   return (
