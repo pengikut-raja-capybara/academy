@@ -25,7 +25,7 @@
 
 Platform ini menggunakan teknologi modern untuk memastikan performa yang cepat dan pengalaman pengguna yang premium:
 
-- **Frontend**: [React 18](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
+- **Frontend**: [React 19](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) (Vibrant & Minimalist Design)
 - **State Management**: [Redux Toolkit](https://redux-toolkit.js.org/) (Persistent Progress & Theme)
 - **Routing**: [React Router v7](https://reactrouter.com/)
