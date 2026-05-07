@@ -66,7 +66,7 @@ export const learningSlice = createSlice({
       }
 
       // Final completion: video >= threshold AND all checklist items checked
-      const checklistTotal = lesson.checklist.length;
+      const checklistTotal = lesson.checklist?.length || 0;
       const checklistDone = Object.values(state.progress[lesson.id].checklist).filter(Boolean).length;
       const checklistCompleted = checklistTotal === 0 || checklistDone === checklistTotal;
       
@@ -99,7 +99,7 @@ export const learningSlice = createSlice({
         const minPct = lesson.minWatchPercentage || 90;
         const videoCompleted = lesson.video ? (duration > 0 && (currentPos / duration) >= (minPct / 100)) : true;
         
-        const checklistTotal = lesson.checklist.length;
+        const checklistTotal = lesson.checklist?.length || 0;
         const checklistDone = Object.values(state.progress[lessonId].checklist).filter(Boolean).length;
         const checklistCompleted = checklistTotal === 0 || checklistDone === checklistTotal;
         
@@ -108,8 +108,37 @@ export const learningSlice = createSlice({
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
+    completeExercise: (state, action: PayloadAction<{ lessonId: string; answers?: Record<number, number>; score?: number }>) => {
+      const { lessonId, answers, score } = action.payload;
+      const lesson = state.modules.lessons.find((l) => l.id === lessonId);
+      if (!lesson) return;
+
+      if (!state.progress[lessonId]) {
+        state.progress[lessonId] = { seen: {}, lastWatchedSec: 0, completed: false, checklist: {} };
+      }
+
+      // Mark all checklist items as done
+      lesson.checklist?.forEach((_, index) => {
+        state.progress[lessonId].checklist[index] = true;
+      });
+
+      if (answers) state.progress[lessonId].quizAnswers = answers;
+      if (score !== undefined) state.progress[lessonId].quizScore = score;
+      state.progress[lessonId].completed = true;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    },
+    resetExercise: (state, action: PayloadAction<string>) => {
+      const lessonId = action.payload;
+      if (state.progress[lessonId]) {
+        state.progress[lessonId].completed = false;
+        state.progress[lessonId].checklist = {};
+        delete state.progress[lessonId].quizAnswers;
+        delete state.progress[lessonId].quizScore;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    },
   },
 });
 
-export const { selectLesson, updateProgress, toggleTheme, setTheme, toggleChecklistItem } = learningSlice.actions;
+export const { selectLesson, updateProgress, toggleTheme, setTheme, toggleChecklistItem, completeExercise, resetExercise } = learningSlice.actions;
 export default learningSlice.reducer;

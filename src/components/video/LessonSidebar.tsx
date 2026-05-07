@@ -1,8 +1,16 @@
-import { CheckCircle2, PlayCircle, FileText, Lock } from "lucide-react";
+import { CheckCircle2, PlayCircle, FileText, Lock, HelpCircle, Flag } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { selectLesson } from "../../features/learning/learningSlice";
 
-export default function LessonSidebar({ onLessonSelect }: { onLessonSelect?: () => void }) {
+interface LessonSidebarProps {
+  onLessonSelect?: () => void;
+  onOverviewSelect?: () => void;
+  isOverviewSelected?: boolean;
+  allLessonsCompleted?: boolean;
+  hasSubmission?: boolean;
+}
+
+export default function LessonSidebar({ onLessonSelect, onOverviewSelect, isOverviewSelected, allLessonsCompleted, hasSubmission }: LessonSidebarProps) {
   const dispatch = useAppDispatch();
   const { modules, progress, selectedLessonId } = useAppSelector((state) => state.learning);
 
@@ -24,13 +32,17 @@ export default function LessonSidebar({ onLessonSelect }: { onLessonSelect?: () 
               const minPct = lesson.minWatchPercentage || 90;
               const videoPct = Math.min(100, Math.round((rawVideoPct / minPct) * 100));
 
-              const checklistTotal = lesson.checklist.length;
+              const checklistTotal = lesson.checklist?.length || 0;
               const checklistDone = Object.values(lessonProgress?.checklist || {}).filter(Boolean).length;
               const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 100;
 
-              // Integrated Progress: Average of video and checklist
+              // Integrated Progress
               let pct = 0;
-              if (lesson.video && checklistTotal > 0) {
+              const isCompleted = lessonProgress?.completed || (lesson.type !== "exercise" && (lesson.video ? videoPct >= 100 : true) && (checklistTotal > 0 ? checklistPct === 100 : true));
+
+              if (lesson.type === "exercise") {
+                pct = isCompleted ? 100 : 0;
+              } else if (lesson.video && checklistTotal > 0) {
                 pct = Math.round((videoPct + checklistPct) / 2);
               } else if (lesson.video) {
                 pct = videoPct;
@@ -38,8 +50,7 @@ export default function LessonSidebar({ onLessonSelect }: { onLessonSelect?: () 
                 pct = checklistPct;
               }
 
-              const isCompleted = (lesson.video ? videoPct >= (lesson.minWatchPercentage || 90) : true) && (checklistTotal > 0 ? checklistPct === 100 : true);
-              const isSelected = selectedLessonId === lesson.id;
+              const isSelected = !isOverviewSelected && selectedLessonId === lesson.id;
 
               // Lock System: Locked if previous lesson is not completed
               const prevLesson = index > 0 ? modules.lessons[index - 1] : null;
@@ -51,18 +62,26 @@ export default function LessonSidebar({ onLessonSelect }: { onLessonSelect?: () 
               const prevMinPct = prevLesson?.minWatchPercentage || 90;
               const normalizedPrevVideoPct = Math.min(100, Math.round((prevRawVideoPct / prevMinPct) * 100));
 
-              const prevChecklistTotal = prevLesson?.checklist.length || 0;
+              const prevChecklistTotal = prevLesson?.checklist?.length || 0;
               const prevChecklistDone = Object.values(prevProgress?.checklist || {}).filter(Boolean).length;
               const prevChecklistPct = prevChecklistTotal > 0 ? Math.round((prevChecklistDone / prevChecklistTotal) * 100) : 100;
 
-              const prevCompleted = prevLesson ? (prevLesson.video ? normalizedPrevVideoPct >= 100 : true) && (prevChecklistTotal > 0 ? prevChecklistPct === 100 : true) : true;
+              const prevCompleted =
+                prevProgress?.completed ||
+                (prevLesson ? prevLesson.type !== "exercise" && (prevLesson.video ? normalizedPrevVideoPct >= 100 : true) && (prevChecklistTotal > 0 ? prevChecklistPct === 100 : true) : true);
 
               const isLocked = index > 0 && !prevCompleted;
 
               return (
-                <li key={lesson.id} className="relative group/item">
+                <li key={lesson.id} className="relative group/item mt-1">
+                  {index > 0 && <div className="h-px bg-slate-200 dark:bg-slate-800 mb-1 mx-2" />}
                   <button
-                    onClick={() => { if (!isLocked) { dispatch(selectLesson(lesson.id)); onLessonSelect?.(); } }}
+                    onClick={() => {
+                      if (!isLocked) {
+                        dispatch(selectLesson(lesson.id));
+                        onLessonSelect?.();
+                      }
+                    }}
                     disabled={isLocked}
                     className={`w-full text-left transition-all relative p-3 rounded-xl border ${
                       isLocked
@@ -74,17 +93,30 @@ export default function LessonSidebar({ onLessonSelect }: { onLessonSelect?: () 
                   >
                     <div className="flex gap-3 items-center">
                       <div className={`flex-shrink-0 ${isLocked ? "text-muted-foreground" : isSelected ? "text-primary" : "text-muted-foreground"}`}>
-                        {isLocked ? <Lock size={16} /> : isCompleted ? <CheckCircle2 size={18} /> : lesson.video ? <PlayCircle size={18} /> : <FileText size={18} />}
+                        {isLocked ? (
+                          <Lock size={16} />
+                        ) : isCompleted ? (
+                          <CheckCircle2 size={18} />
+                        ) : lesson.type === "exercise" ? (
+                          <HelpCircle size={18} />
+                        ) : lesson.video ? (
+                          <PlayCircle size={18} />
+                        ) : (
+                          <FileText size={18} />
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <span className={`block font-bold text-[11px] leading-tight mb-1 truncate ${isLocked ? "text-muted-foreground" : isSelected ? "text-primary" : ""}`}>{lesson.title}</span>
-                        {lesson.video && !isLocked && (
+                        {(lesson.video || lesson.type === "exercise") && !isLocked && (
                           <div className="flex items-center gap-3 mt-2">
-                            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden border border-border/10">
-                              <div className="h-full bg-blue-500 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]" style={{ width: `${pct}%` }} />
+                            <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden border border-border/10">
+                              <div
+                                className={`h-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)] ${isCompleted ? "bg-green-500" : "bg-blue-500"}`}
+                                style={{ width: `${pct}%` }}
+                              />
                             </div>
-                            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">{pct}%</span>
+                            <span className={`text-[10px] font-black ${isCompleted ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400"}`}>{pct}%</span>
                           </div>
                         )}
                       </div>
@@ -93,6 +125,41 @@ export default function LessonSidebar({ onLessonSelect }: { onLessonSelect?: () 
                 </li>
               );
             })}
+
+            {/* Overview / Completion Item */}
+            {allLessonsCompleted && (
+              <li className="relative mt-2">
+                <div className="h-px bg-slate-200 dark:bg-slate-800 mb-2" />
+                <button
+                  onClick={() => onOverviewSelect?.()}
+                  className={`w-full text-left transition-all relative p-3 rounded-xl border ${
+                    isOverviewSelected ? "bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-purple-500/30 shadow-sm" : "bg-transparent border-transparent hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="flex gap-3 items-center">
+                    <div className={`flex-shrink-0 ${isOverviewSelected ? "text-purple-500" : "text-muted-foreground"}`}>{hasSubmission ? <Flag size={18} /> : <CheckCircle2 size={18} />}</div>
+                    <div className="flex-1 min-w-0">
+                      <span
+                        className={`block font-bold text-[11px] leading-tight mb-1 truncate ${isOverviewSelected ? "bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" : ""}`}
+                      >
+                        {hasSubmission ? "Tugas Akhir" : "Selesai"}
+                      </span>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden border border-border/10">
+                          <div
+                            className={`h-full transition-all duration-700 ease-out bg-gradient-to-r from-purple-500 to-pink-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]`}
+                            style={{ width: `100%` }}
+                          />
+                        </div>
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${isOverviewSelected ? "text-purple-500" : "text-muted-foreground"}`}>
+                          {hasSubmission ? "FINAL" : "100%"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </li>
+            )}
           </ul>
         </div>
       </div>

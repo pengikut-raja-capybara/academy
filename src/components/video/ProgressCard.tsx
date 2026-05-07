@@ -16,12 +16,18 @@ export default function ProgressCard() {
     const minPct = lesson.minWatchPercentage || 90;
     const videoPct = Math.min(100, Math.round((rawVideoPct / minPct) * 100));
 
-    const checklistTotal = lesson.checklist.length;
+    const checklistTotal = lesson.checklist?.length || 0;
     const checklistDone = Object.values(lessonProgress.checklist || {}).filter(Boolean).length;
     const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 100;
 
+    const isCompleted = lessonProgress.completed || 
+      ((lesson.video ? videoPct >= (lesson.minWatchPercentage || 90) : true) && 
+      (checklistTotal > 0 ? checklistPct === 100 : true));
+
     let lessonPct = 0;
-    if (lesson.video && checklistTotal > 0) {
+    if (lesson.type === "exercise") {
+      lessonPct = isCompleted ? 100 : 0;
+    } else if (lesson.video && checklistTotal > 0) {
       lessonPct = (videoPct + checklistPct) / 2;
     } else if (lesson.video) {
       lessonPct = videoPct;
