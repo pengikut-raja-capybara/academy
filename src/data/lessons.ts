@@ -26,7 +26,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Pengenalan tentang apa itu HTML, sejarahnya, dan mengapa kita perlu mempelajarinya.",
       video: "NBZ9Ro6UKV8",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Pahami sejarah HTML", "Instal browser Google Chrome"],
+      checklist: ["Pahami sejarah HTML", "Instal browser Google Chrome"],
     },
     {
       id: "html-2",
@@ -35,7 +35,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Langkah pertama membuat dan menjalankan file HTML sederhana di browser.",
       video: "1NicaVOCXHA",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Praktekkan pembuatan file index.html", "Jalankan file di browser"],
+      checklist: ["Praktekkan pembuatan file index.html", "Jalankan file di browser"],
     },
     {
       id: "html-3",
@@ -44,7 +44,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Pemilihan dan instalasi code editor yang tepat untuk menulis kode HTML dengan lebih efisien.",
       video: "3sLSi9L5nWE",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Instal Extension HTML pendukung", "Setup workspace pertama kamu"],
+      checklist: ["Instal Extension HTML pendukung", "Setup workspace pertama kamu"],
     },
     {
       id: "html-4",
@@ -53,7 +53,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Memahami anatomi HTML, cara kerja tag, elemen, and atribut dalam menstrukturkan halaman web.",
       video: "cUWBYzA6M-8",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Pelajari elemen dan atribut dasar", "Buat struktur HTML5 minimalis"],
+      checklist: ["Pelajari elemen dan atribut dasar", "Buat struktur HTML5 minimalis"],
     },
     {
       id: "html-5",
@@ -62,7 +62,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Cara menulis, memformat, dan merapikan teks paragraf menggunakan tag HTML.",
       video: "Dl_bIYBc9gM",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Pahami whitespace di HTML", "Coba tag <br> dan <hr>"],
+      checklist: ["Pahami whitespace di HTML", "Coba tag <br> dan <hr>"],
     },
     {
       id: "html-6",
@@ -71,7 +71,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Penggunaan tag heading (H1 hingga H6) untuk membuat hierarki judul dan subjudul.",
       video: "SMetRBdIh-8",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Pahami pentingnya H1 untuk SEO", "Buat artikel dengan struktur judul yang benar"],
+      checklist: ["Pahami pentingnya H1 untuk SEO", "Buat artikel dengan struktur judul yang benar"],
     },
     {
       id: "html-7",
@@ -80,7 +80,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Membuat daftar item menggunakan Ordered List (ol), Unordered List (ul), dan List Item (li).",
       video: "gLHEoeupIZs",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Buat langkah-langkah dengan <ol>", "Custom bullet point sederhana"],
+      checklist: ["Buat langkah-langkah dengan <ol>", "Custom bullet point sederhana"],
     },
     {
       id: "html-8",
@@ -89,7 +89,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Menghubungkan antar halaman web menggunakan tag anchor (a) atau hyperlink.",
       video: "QIlBOI-hTuA",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Gunakan target='_blank'", "Buat navigasi antar file lokal"],
+      checklist: ["Gunakan target='_blank'", "Buat navigasi antar file lokal"],
     },
     {
       id: "html-9",
@@ -98,7 +98,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Menambahkan, menampilkan, dan mengatur gambar di dalam halaman web menggunakan tag img.",
       video: "yb_emYhY3Pc",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Pahami penggunaan atribut alt", "Atur lebar dan tinggi gambar"],
+      checklist: ["Pahami penggunaan atribut alt", "Atur lebar dan tinggi gambar"],
     },
     {
       id: "html-10",
@@ -107,7 +107,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Membangun struktur tabel dasar untuk menampilkan data dalam bentuk baris dan kolom.",
       video: "7-QNafrXigs",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Isi data dengan <td>", "Berikan header tabel dengan <th>"],
+      checklist: ["Isi data dengan <td>", "Berikan header tabel dengan <th>"],
     },
     {
       id: "html-11",
@@ -116,7 +116,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Teknik menggabungkan baris (rowspan) dan kolom (colspan) pada tabel HTML.",
       video: "qs8G2XWf7Yk",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Praktekkan rowspan untuk gabung baris", "Buat jadwal pelajaran menggunakan tabel"],
+      checklist: ["Praktekkan rowspan untuk gabung baris", "Buat jadwal pelajaran menggunakan tabel"],
     },
     {
       id: "html-12",
@@ -125,7 +125,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Mengenal elemen form dasar untuk mengumpulkan input data dari pengguna.",
       video: "LQf_Jj7jbCI",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Pahami atribut name dan id", "Buat tombol submit sederhana"],
+      checklist: ["Pahami atribut name dan id", "Buat tombol submit sederhana"],
     },
     {
       id: "html-13",
@@ -134,7 +134,7 @@ export const SAMPLE_MODULES: Module = {
       description: "Eksplorasi lebih lanjut mengenai berbagai tipe input, radio button, checkbox, dan tombol submit pada form.",
       video: "_CNkLKU-LoE",
       minWatchPercentage: 90,
-      checklist: ["Tonton video sampai selesai", "Buat pilihan dengan radio button", "Gunakan checkbox untuk persetujuan"],
+      checklist: ["Buat pilihan dengan radio button", "Gunakan checkbox untuk persetujuan"],
     },
   ],
 };

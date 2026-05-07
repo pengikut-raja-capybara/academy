@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { updateProgress } from "../../features/learning/learningSlice";
-import { Play, Pause, Maximize } from "lucide-react";
+import { Play, Pause, Maximize2, Minimize2 } from "lucide-react";
 
 type Props = {
   lessonId: string;
@@ -18,6 +18,7 @@ declare global {
 }
 
 export default function VideoPlayer({ lessonId, video }: Props) {
+  const [isWide, setIsWide] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<number | null>(null);
@@ -27,6 +28,7 @@ export default function VideoPlayer({ lessonId, video }: Props) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSeconds, setCurrentSeconds] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
+  const [hoverPct, setHoverPct] = useState<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -144,6 +146,18 @@ export default function VideoPlayer({ lessonId, video }: Props) {
     setCurrentSeconds(seekTime);
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!totalDuration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    let pct = (e.clientX - rect.left) / rect.width;
+    pct = Math.max(0, Math.min(1, pct));
+    setHoverPct(pct);
+  };
+
+  const handleMouseLeave = () => {
+    setHoverPct(null);
+  };
+
   const togglePlay = () => {
     if (!playerRef.current) return;
     if (isPlaying) {
@@ -153,74 +167,151 @@ export default function VideoPlayer({ lessonId, video }: Props) {
     }
   };
 
-  const toggleFullscreen = () => {
-    const container = containerRef.current?.parentElement?.parentElement;
-    if (!container) return;
-    if (!document.fullscreenElement) {
-      container.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  };
+  const toggleWide = useCallback(() => setIsWide((prev) => !prev), []);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!isWide) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsWide(false);
+    };
+    document.addEventListener("keydown", handleKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = "";
+    };
+  }, [isWide]);
 
   const formatTime = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
+    const mathSec = Math.floor(sec);
+    const m = Math.floor(mathSec / 60);
+    const s = mathSec % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const playbackPct = totalDuration > 0 ? Math.round((currentSeconds / totalDuration) * 100) : 0;
+  const playbackPct = totalDuration > 0 ? (currentSeconds / totalDuration) * 100 : 0;
 
-  return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-2xl relative group">
-        <div className="aspect-video relative bg-black">
-          {/* 1. Dedicated Player Container */}
-          <div ref={containerRef} className="w-full h-full scale-[1.01]"></div>
+  // Watch progress
+  const minPct = totalDuration;
+  const isVideoCompleted = playbackPct >= minPct;
+  const displayPlaybackPct = Math.round(playbackPct);
 
-          {/* 2. React-managed Overlays */}
-          {!isReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse z-10">
-              <span className="text-muted-foreground font-medium">Memuat Cinema...</span>
-            </div>
-          )}
+  /* ─── Shared Controls Bar ──────────────────────── */
+  const controlsBar = (
+    <div className={`flex flex-col gap-2 py-2 px-4 select-none border-t ${isWide ? "border-white/10 bg-black/80" : "border-border bg-card"}`}>
+      {/* Seek Bar */}
+      <div className="relative py-2 -my-2 group/bar cursor-pointer" onClick={handleSeek} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+        <div className={`h-2 rounded-full overflow-hidden relative ${isWide ? "bg-white/30" : "bg-gray-700"}`}>
+          <div
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 ease-linear shadow-[0_0_15px_rgba(168,85,247,0.5)]"
+            style={{ width: `${playbackPct || 0}%` }}
+          />
+          <div className="absolute top-0 left-0 w-full h-full opacity-0 group-hover/bar:opacity-100 bg-white/20 transition-opacity" />
         </div>
 
-        {/* --- PREMIUM CUSTOM CONTROLS --- */}
-        <div className="py-2 px-4 bg-card border-t border-border space-y-2 select-none">
-          {/* Top: Interactive Seek Bar */}
-          <div onClick={handleSeek} className="group/bar h-2 bg-muted rounded-full overflow-hidden cursor-pointer relative">
-            <div className="absolute top-0 left-0 h-full bg-primary transition-all duration-300 ease-linear shadow-[0_0_15px_rgba(59,130,246,0.5)]" style={{ width: `${playbackPct}%` }} />
-            <div className="absolute top-0 left-0 w-full h-full opacity-0 group-hover/bar:opacity-100 bg-primary/10 transition-opacity" />
+        {/* Hover Tooltip */}
+        {hoverPct !== null && totalDuration > 0 && (
+          <div
+            className="absolute bottom-full mb-1 -translate-x-1/2 bg-black/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg pointer-events-none whitespace-nowrap z-10"
+            style={{ left: `${hoverPct * 100}%` }}
+          >
+            {formatTime(hoverPct * totalDuration)}
+          </div>
+        )}
+      </div>
+
+      {/* Controls Row */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-3 sm:gap-5">
+          <button 
+            onClick={togglePlay} 
+            className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-90 ${isWide ? "text-white hover:bg-white/10" : "text-primary hover:bg-primary/10"}`}
+          >
+            {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+          </button>
+          
+          <div className="flex items-center gap-1.5 font-medium text-[11px] sm:text-xs tracking-wide">
+            <span className={isWide ? "text-white" : "text-foreground"}>{formatTime(currentSeconds)}</span>
+            <span className={isWide ? "text-white/40" : "text-muted-foreground/50"}>/</span>
+            <span className={isWide ? "text-white/60" : "text-muted-foreground"}>{formatTime(totalDuration)}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 sm:gap-5">
+          {/* Learning Progress Indicator */}
+          <div className="flex items-center gap-2.5">
+            <div className={`hidden sm:block w-16 h-1 rounded-full overflow-hidden ${isWide ? "bg-white/10" : "bg-muted"}`}>
+              <div
+                className={`h-full rounded-full transition-all duration-500 ease-out ${
+                  isVideoCompleted ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-gradient-to-r from-blue-500 to-purple-500"
+                }`}
+                style={{ width: `${playbackPct}%` }}
+              />
+            </div>
+            <div
+              className={`px-2 py-1 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
+                isVideoCompleted
+                  ? isWide
+                    ? "text-green-400 bg-green-400/10"
+                    : "text-green-600 bg-green-600/10 dark:text-green-400 dark:bg-green-400/10"
+                  : isWide
+                    ? "text-white/70"
+                    : "text-muted-foreground"
+              }`}
+            >
+              {isVideoCompleted ? "Tuntas" : `${displayPlaybackPct}%`}
+            </div>
           </div>
 
-          {/* Bottom: Controls Row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              {/* Play/Pause */}
-              <button onClick={togglePlay} className="text-muted-foreground hover:text-primary transition-colors active:scale-90">
-                {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
-              </button>
+          <div className={`w-px h-4 ${isWide ? "bg-white/10" : "bg-border"}`} />
 
-              {/* Time Display */}
-              <div className="flex items-center gap-2 font-mono text-[11px] font-bold tracking-tighter">
-                <span className="text-primary">{formatTime(currentSeconds)}</span>
-                <span className="text-muted-foreground/30">/</span>
-                <span className="text-muted-foreground">{formatTime(totalDuration)}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="px-3 py-1 bg-primary/10 rounded-full text-[10px] font-black text-primary uppercase tracking-widest">{Math.round(playbackPct)}% Selesai</div>
-              <button onClick={toggleFullscreen} className="text-muted-foreground hover:text-primary transition-colors">
-                <Maximize size={18} />
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={toggleWide}
+            className={`p-1.5 sm:p-2 rounded-full transition-all ${isWide ? "text-white/70 hover:text-white hover:bg-white/10" : "text-muted-foreground hover:text-primary hover:bg-primary/10"}`}
+            title={isWide ? "Mode Normal" : "Mode Cinema"}
+          >
+            {isWide ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </button>
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* Backdrop overlay */}
+      {isWide && <div className="fixed inset-0 z-[9998] bg-black/90 animate-in fade-in duration-300" onClick={toggleWide} />}
+
+      {/* Single container: inline by default, fixed overlay when cinema */}
+      <div className={`transition-all duration-300 ease-in-out ${isWide ? "fixed inset-0 z-[9999] flex flex-col py-4 sm:py-8" : "max-w-4xl mx-auto"}`}>
+        {/* Cinema top bar */}
+        {isWide && (
+          <div className="shrink-0 w-full max-w-6xl mx-auto flex items-center justify-between px-4 mb-4">
+            <span className="text-white/40 text-xs font-bold tracking-widest uppercase">Studio Mode</span>
+          </div>
+        )}
+
+        {/* Video card */}
+        <div
+          className={`overflow-hidden relative group ${isWide ? "flex-1 min-h-0 w-full max-w-6xl mx-auto rounded-xl shadow-2xl shadow-black/50" : "bg-card border border-border rounded-2xl shadow-2xl"}`}
+        >
+          <div className={`relative bg-black ${isWide ? "w-full h-full" : "aspect-video"}`}>
+            <div ref={containerRef} className="w-full h-full scale-[1.01]" />
+            {!isReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse z-10">
+                <span className="text-muted-foreground font-medium">Memuat Video...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Controls inside card when normal mode */}
+          {!isWide && controlsBar}
+        </div>
+
+        {/* Controls floating at bottom when cinema */}
+        {isWide && <div className="shrink-0 w-full max-w-6xl mx-auto mt-4 rounded-2xl overflow-hidden border border-white/10 bg-black/60 backdrop-blur-xl">{controlsBar}</div>}
+      </div>
+    </>
   );
 }
