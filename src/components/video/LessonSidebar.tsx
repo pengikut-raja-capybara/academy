@@ -1,8 +1,10 @@
 import { CheckCircle2, PlayCircle, FileText, Lock, HelpCircle, Flag } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { selectLesson } from "../../features/learning/learningSlice";
+import type { Module, Lesson } from "../../types";
 
 interface LessonSidebarProps {
+  modules: Module;
   onLessonSelect?: () => void;
   onOverviewSelect?: () => void;
   isOverviewSelected?: boolean;
@@ -10,9 +12,9 @@ interface LessonSidebarProps {
   hasSubmission?: boolean;
 }
 
-export default function LessonSidebar({ onLessonSelect, onOverviewSelect, isOverviewSelected, allLessonsCompleted, hasSubmission }: LessonSidebarProps) {
+export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelect, isOverviewSelected, allLessonsCompleted, hasSubmission }: LessonSidebarProps) {
   const dispatch = useAppDispatch();
-  const { modules, progress, selectedLessonId } = useAppSelector((state) => state.learning);
+  const { progress, selectedLessonId } = useAppSelector((state) => state.learning);
 
   return (
     <div className="space-y-6">
@@ -24,7 +26,7 @@ export default function LessonSidebar({ onLessonSelect, onOverviewSelect, isOver
       <div className="space-y-8">
         <div className="space-y-3">
           <ul className="space-y-1">
-            {modules.lessons.map((lesson, index) => {
+            {modules.lessons.map((lesson: Lesson, index: number) => {
               const lessonProgress = progress[lesson.id] || (lesson.video ? progress[lesson.video] : undefined);
               const currentPos = lessonProgress?.lastWatchedSec || 0;
               const duration = lessonProgress?.duration || lesson.duration || 1;

@@ -1,12 +1,13 @@
 import { useMemo, useCallback, memo, useState, useEffect, useRef } from "react";
+import { useParams } from "react-router";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import VideoPlayer from "../components/video/VideoPlayer";
 import LessonSidebar from "../components/video/LessonSidebar";
 import ProgressCard from "../components/video/ProgressCard";
 import { CheckCircle2, Circle, ChevronLeft, ChevronRight, Menu, X, ClipboardCheck, ExternalLink, Download, FileText, FileArchive, Image as ImageIcon, Link as LinkIcon, Paperclip } from "lucide-react";
-import { toggleChecklistItem, selectLesson, completeExercise, resetExercise } from "../features/learning/learningSlice";
+import { toggleChecklistItem, selectLesson, selectModule, completeExercise, resetExercise } from "../features/learning/learningSlice";
 import QuizPlayer from "../components/exercise/QuizPlayer";
-import type { Lesson, ProgressMap, Attachment } from "../types";
+import type { Lesson, ProgressMap, Attachment, Module } from "../types";
 
 // ─── Helpers ────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ const SidebarDrawer = memo(function SidebarDrawer({
   isOverviewSelected,
   allLessonsCompleted,
   hasSubmission,
+  modules,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -69,6 +71,7 @@ const SidebarDrawer = memo(function SidebarDrawer({
   isOverviewSelected: boolean;
   allLessonsCompleted: boolean;
   hasSubmission: boolean;
+  modules: Module;
 }) {
   return (
     <>
@@ -95,15 +98,16 @@ const SidebarDrawer = memo(function SidebarDrawer({
 
         {/* Desktop progress */}
         <div className="p-4 border-b border-border hidden lg:block">
-          <ProgressCard />
+          <ProgressCard module={modules} />
         </div>
 
         {/* Lesson list */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
           <div className="lg:hidden mb-4">
-            <ProgressCard />
+            <ProgressCard module={modules} />
           </div>
           <LessonSidebar
+            modules={modules}
             onLessonSelect={onLessonSelect}
             onOverviewSelect={onOverviewSelect}
             isOverviewSelected={isOverviewSelected}
@@ -437,13 +441,52 @@ const ModuleOverviewScreen = memo(function ModuleOverviewScreen({
 // ─── Main Page ──────────────────────────────────────────
 
 export default function LearningPage() {
+  const { id } = useParams();
   const dispatch = useAppDispatch();
-  const { modules, progress, selectedLessonId } = useAppSelector((state) => state.learning);
+  const { allModules, progress, selectedLessonId, selectedModuleId } = useAppSelector((state) => state.learning);
+
+  const modules = useMemo(() => allModules.find((m) => m.id === id) || allModules[0], [allModules, id]);
+  const allLessons = modules.lessons;
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isOverviewSelected, setIsOverviewSelected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const allLessons = modules.lessons;
+  // Sync Module from URL to Redux
+  useEffect(() => {
+    if (id && id !== selectedModuleId) {
+      dispatch(selectModule(id));
+    }
+  }, [id, selectedModuleId, dispatch]);
+
+  const hasInitialChecked = useRef<string | null>(null);
+
+  // Auto-Resume: Check status on initial module entry or refresh
+  useEffect(() => {
+    if (allLessons.length === 0 || !id) return;
+
+    // Only perform the auto-navigation once per module visit/refresh
+    if (hasInitialChecked.current === id) return;
+
+    const isLessonInModule = allLessons.some((l) => l.id === selectedLessonId);
+
+    // Find first lesson that is not completed
+    const firstIncomplete = allLessons.find((l) => {
+      const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
+      return !lp?.completed;
+    });
+
+    if (!firstIncomplete) {
+      // All completed! Always default to overview on entry
+      setIsOverviewSelected(true);
+    } else if (!isLessonInModule) {
+      // Different module context, find where we left off
+      dispatch(selectLesson(firstIncomplete.id));
+      setIsOverviewSelected(false);
+    }
+
+    hasInitialChecked.current = id;
+  }, [id, allLessons, selectedLessonId, progress, dispatch]);
 
   const { selectedLesson, currentIdx } = useMemo(() => {
     const idx = allLessons.findIndex((l) => l.id === selectedLessonId);
@@ -530,6 +573,7 @@ export default function LearningPage() {
         isOverviewSelected={isOverviewSelected}
         allLessonsCompleted={allLessonsCompleted}
         hasSubmission={hasSubmission}
+        modules={modules}
       />
 
       <div className="flex-1 min-w-0 flex flex-col bg-muted/20 overflow-hidden">

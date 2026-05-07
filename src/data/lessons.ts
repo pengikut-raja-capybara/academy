@@ -194,6 +194,52 @@ Upload hasil tugasmu melalui form di bawah ini.`,
     //   video: "_CNkLKU-LoE",
     //   minWatchPercentage: 90,
     //   checklist: ["Buat pilihan dengan radio button", "Gunakan checkbox untuk persetujuan"],
-    // },
   ],
 };
+
+export const CSS_MODULE: Module = {
+  id: "mod-css",
+  title: "🎨 CSS Dasar",
+  description: "Percantik halaman webmu dengan gaya, warna, dan tata letak yang menarik menggunakan CSS modern.",
+  submissionUrl: "https://forms.google.com",
+  submissionDescription: "Buatlah sebuah layout kartu profil yang responsif menggunakan CSS Grid atau Flexbox.",
+  lessons: [
+    {
+      id: "css-intro",
+      moduleId: "mod-css",
+      title: "Mengenal CSS",
+      type: "video",
+      description: "Apa itu CSS dan bagaimana cara menghubungkannya dengan HTML?",
+      video: "1PnVor36_40",
+      minWatchPercentage: 90,
+      checklist: ["Pahami Selector", "Gunakan Property dan Value"],
+    },
+    {
+      id: "css-latihan-1",
+      moduleId: "mod-css",
+      title: "Latihan: Warna & Font",
+      type: "exercise",
+      description: "Uji pengetahuanmu tentang pewarnaan dan tipografi di CSS.",
+      minScorePercentage: 70,
+      exercise: {
+        type: "quiz",
+        questions: [
+          {
+            id: "css-q1",
+            question: "Properti mana yang digunakan untuk mengubah warna teks?",
+            options: ["text-color", "color", "font-style", "background-color"],
+            correctAnswer: 1,
+          },
+          {
+            id: "css-q2",
+            question: "Apa singkatan dari CSS?",
+            options: ["Creative Style Sheets", "Cascading Style Sheets", "Computer Style Sheets", "Colorful Style Sheets"],
+            correctAnswer: 1,
+          },
+        ],
+      },
+    },
+  ],
+};
+
+export const ALL_MODULES: Module[] = [SAMPLE_MODULES, CSS_MODULE];

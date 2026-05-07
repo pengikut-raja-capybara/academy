@@ -18,9 +18,7 @@ export default function LandingPage() {
           </div>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-6 tracking-tight leading-tight">
             Belajar <br />
-            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">
-              Jadi Lebih Seru
-            </span>
+            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">Jadi Lebih Seru</span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-8 sm:mb-12 leading-relaxed max-w-3xl mx-auto font-medium px-2">
             PRC Academy membantu Anda menguasai teknologi dengan materi terstruktur dan tracking progress otomatis.
@@ -58,12 +56,8 @@ export default function LandingPage() {
       <section className="py-20 sm:py-32 px-4 sm:px-6 bg-gradient-to-b from-muted/10 to-muted/40">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 sm:mb-20">
-            <h2 className="text-3xl sm:text-5xl font-black mb-4 sm:mb-6 tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
-              Kenapa Harus Kami?
-            </h2>
-            <p className="text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto font-medium px-4">
-              Kami merancang platform ini khusus untuk kenyamanan belajar Anda
-            </p>
+            <h2 className="text-3xl sm:text-5xl font-black mb-4 sm:mb-6 tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">Kenapa Harus Kami?</h2>
+            <p className="text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto font-medium px-4">Kami merancang platform ini khusus untuk kenyamanan belajar Anda</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard

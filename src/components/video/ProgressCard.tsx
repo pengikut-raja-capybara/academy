@@ -1,12 +1,14 @@
 import { Target } from "lucide-react";
 import { useAppSelector } from "../../store/hooks";
+import type { Module, Lesson } from "../../types";
 
-export default function ProgressCard() {
-  const { modules, progress } = useAppSelector((state) => state.learning);
+export default function ProgressCard({ module }: { module?: Module }) {
+  const { allModules, selectedModuleId, progress } = useAppSelector((state) => state.learning);
+  const activeModule = module || allModules.find((m) => m.id === selectedModuleId) || allModules[0];
 
-  const allLessons = modules.lessons;
+  const allLessons = activeModule.lessons;
 
-  const totalProgress = allLessons.reduce((acc, lesson) => {
+  const totalProgress = allLessons.reduce((acc: number, lesson: Lesson) => {
     const lessonProgress = progress[lesson.id] || (lesson.video ? progress[lesson.video] : undefined);
     if (!lessonProgress) return acc;
 
@@ -39,7 +41,7 @@ export default function ProgressCard() {
   }, 0);
 
   const overallPct = allLessons.length > 0 ? Math.round(totalProgress / allLessons.length) : 0;
-  const completedCount = allLessons.filter((l) => progress[l.id]?.completed).length;
+  const completedCount = allLessons.filter((l: Lesson) => progress[l.id]?.completed).length;
 
   return (
     <div className="space-y-4">

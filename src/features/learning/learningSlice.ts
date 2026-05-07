@@ -1,9 +1,10 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { Module, ProgressMap, Theme } from "../../types";
-import { SAMPLE_MODULES } from "../../data/lessons";
+import { ALL_MODULES } from "../../data/lessons";
 
 interface LearningState {
-  modules: Module;
+  allModules: Module[];
+  selectedModuleId: string;
   progress: ProgressMap;
   selectedLessonId: string;
   theme: Theme;
@@ -24,9 +25,10 @@ const loadState = (): Partial<LearningState> => {
 const savedState = loadState();
 
 const initialState: LearningState = {
-  modules: SAMPLE_MODULES,
+  allModules: ALL_MODULES,
+  selectedModuleId: savedState.selectedModuleId || ALL_MODULES[0].id,
   progress: savedState.progress || {},
-  selectedLessonId: savedState.selectedLessonId || SAMPLE_MODULES.lessons[0].id,
+  selectedLessonId: savedState.selectedLessonId || ALL_MODULES[0].lessons[0].id,
   theme: savedState.theme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
 };
 
@@ -34,13 +36,21 @@ export const learningSlice = createSlice({
   name: "learning",
   initialState,
   reducers: {
+    selectModule: (state, action: PayloadAction<string>) => {
+      state.selectedModuleId = action.payload;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    },
     selectLesson: (state, action: PayloadAction<string>) => {
       state.selectedLessonId = action.payload;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
     updateProgress: (state, action: PayloadAction<{ videoId: string; second: number; duration: number }>) => {
       const { videoId, second, duration } = action.payload;
-      const lesson = state.modules.lessons.find((l) => l.video === videoId);
+      let lesson;
+      for (const m of state.allModules) {
+        lesson = m.lessons.find((l) => l.video === videoId);
+        if (lesson) break;
+      }
       if (!lesson) return;
 
       if (!state.progress[lesson.id]) {
@@ -92,7 +102,11 @@ export const learningSlice = createSlice({
       state.progress[lessonId].checklist[itemIndex] = !state.progress[lessonId].checklist[itemIndex];
       
       // Re-check completion when checklist is toggled
-      const lesson = state.modules.lessons.find(l => l.id === lessonId || l.video === lessonId);
+      let lesson;
+      for (const m of state.allModules) {
+        lesson = m.lessons.find(l => l.id === lessonId || l.video === lessonId);
+        if (lesson) break;
+      }
       if (lesson) {
         const currentPos = state.progress[lessonId].lastWatchedSec;
         const duration = lesson.duration || state.progress[lessonId].duration || 1;
@@ -110,7 +124,11 @@ export const learningSlice = createSlice({
     },
     completeExercise: (state, action: PayloadAction<{ lessonId: string; answers?: Record<number, number>; score?: number }>) => {
       const { lessonId, answers, score } = action.payload;
-      const lesson = state.modules.lessons.find((l) => l.id === lessonId);
+      let lesson;
+      for (const m of state.allModules) {
+        lesson = m.lessons.find((l) => l.id === lessonId);
+        if (lesson) break;
+      }
       if (!lesson) return;
 
       if (!state.progress[lessonId]) {
@@ -140,5 +158,5 @@ export const learningSlice = createSlice({
   },
 });
 
-export const { selectLesson, updateProgress, toggleTheme, setTheme, toggleChecklistItem, completeExercise, resetExercise } = learningSlice.actions;
+export const { selectModule, selectLesson, updateProgress, toggleTheme, setTheme, toggleChecklistItem, completeExercise, resetExercise } = learningSlice.actions;
 export default learningSlice.reducer;
