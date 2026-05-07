@@ -1,9 +1,12 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import type { Module, ProgressMap, Theme } from "../../types";
 import { ALL_MODULES } from "../../data/lessons";
+import { fetchAllModules } from "../../services/cms";
 
 interface LearningState {
   allModules: Module[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
   selectedModuleId: string;
   progress: ProgressMap;
   selectedLessonId: string;
@@ -11,6 +14,10 @@ interface LearningState {
 }
 
 const STORAGE_KEY = "capybara_academy_state";
+
+export const fetchModules = createAsyncThunk('learning/fetchModules', async () => {
+  return await fetchAllModules();
+});
 
 const loadState = (): Partial<LearningState> => {
   try {
@@ -25,10 +32,12 @@ const loadState = (): Partial<LearningState> => {
 const savedState = loadState();
 
 const initialState: LearningState = {
-  allModules: ALL_MODULES,
-  selectedModuleId: savedState.selectedModuleId || ALL_MODULES[0].id,
+  allModules: [], // Dimulai dari kosong agar sistem melakukan fetch dan menampilkan skeleton
+  status: 'idle',
+  error: null,
+  selectedModuleId: savedState.selectedModuleId || "",
   progress: savedState.progress || {},
-  selectedLessonId: savedState.selectedLessonId || ALL_MODULES[0].lessons[0].id,
+  selectedLessonId: savedState.selectedLessonId || "",
   theme: savedState.theme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
 };
 
@@ -155,6 +164,25 @@ export const learningSlice = createSlice({
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchModules.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchModules.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.allModules = action.payload;
+        
+        // If current selectedModuleId is invalid, reset it
+        if (!state.allModules.some(m => m.id === state.selectedModuleId)) {
+          state.selectedModuleId = state.allModules[0]?.id || "";
+        }
+      })
+      .addCase(fetchModules.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Failed to fetch modules';
+      });
   },
 });
 

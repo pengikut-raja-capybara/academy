@@ -74,7 +74,7 @@ const ModuleCard = memo(function ModuleCard({ mod, onStart }: { mod: Module & { 
 });
 
 export default function ModulesPage() {
-  const { allModules, progress } = useAppSelector((state) => state.learning);
+  const { allModules, progress, status } = useAppSelector((state) => state.learning);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [searchQuery, setSearchQuery] = useState("");
@@ -144,12 +144,28 @@ export default function ModulesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
           <div className="flex items-center justify-between mb-12">
             <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
-              Modul Tersedia <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs text-muted-foreground">{moduleProgress.length}</span>
+              Modul Tersedia <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs text-muted-foreground">{status === 'loading' ? '...' : moduleProgress.length}</span>
             </h2>
           </div>
 
-          {moduleProgress.length === 0 ? (
-            <div className="text-center py-20 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-sm">
+          {status === 'loading' && allModules.length === 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-[480px] rounded-3xl bg-card/50 border border-border animate-pulse flex flex-col">
+                  <div className="h-52 bg-muted rounded-t-3xl" />
+                  <div className="p-8 space-y-4">
+                    <div className="h-8 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-full" />
+                    <div className="h-4 bg-muted rounded w-5/6" />
+                    <div className="mt-auto pt-8">
+                      <div className="h-12 bg-muted rounded-2xl" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : moduleProgress.length === 0 ? (
+            <div className="text-center py-20 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-sm animate-in fade-in zoom-in duration-500">
               <BookOpen size={48} className="mx-auto text-muted-foreground mb-4 opacity-50" />
               <p className="text-xl font-bold">Modul tidak ditemukan</p>
               <p className="text-muted-foreground">Coba gunakan kata kunci pencarian yang lain.</p>

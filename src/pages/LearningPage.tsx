@@ -8,6 +8,7 @@ import { CheckCircle2, Circle, ChevronLeft, ChevronRight, Menu, X, ClipboardChec
 import { toggleChecklistItem, selectLesson, selectModule, completeExercise, resetExercise } from "../features/learning/learningSlice";
 import QuizPlayer from "../components/exercise/QuizPlayer";
 import type { Lesson, ProgressMap, Attachment, Module } from "../types";
+import { resolveAssetUrl } from "../services/cms";
 
 // ─── Helpers ────────────────────────────────────────────
 
@@ -229,7 +230,7 @@ const AttachmentsSection = memo(function AttachmentsSection({ attachments, title
         {attachments.map((item, index) => (
           <a
             key={index}
-            href={item.url}
+            href={resolveAssetUrl(item.file || item.url || "")}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 sm:gap-4 p-4 rounded-xl border border-border bg-card hover:border-blue-500/50 hover:shadow-md transition-all group"
@@ -443,14 +444,26 @@ const ModuleOverviewScreen = memo(function ModuleOverviewScreen({
 export default function LearningPage() {
   const { id } = useParams();
   const dispatch = useAppDispatch();
-  const { allModules, progress, selectedLessonId, selectedModuleId } = useAppSelector((state) => state.learning);
+  const { allModules, progress, selectedLessonId, selectedModuleId, status } = useAppSelector((state) => state.learning);
 
   const modules = useMemo(() => allModules.find((m) => m.id === id) || allModules[0], [allModules, id]);
-  const allLessons = modules.lessons;
-
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isOverviewSelected, setIsOverviewSelected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  if (!modules || status === 'loading') {
+    return (
+      <div className="flex h-[calc(100vh-65px)] items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+           <p className="text-sm font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Memuat Materi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const allLessons = modules.lessons;
 
   // Sync Module from URL to Redux
   useEffect(() => {

@@ -2,6 +2,7 @@ import type { Module } from "../types";
 
 export const SAMPLE_MODULES: Module = {
   id: "mod-html",
+  slug: "html-dasar",
   title: "🚀 HTML Dasar",
   description: "Pelajari fondasi utama pembuatan halaman web menggunakan HTML tingkat dasar hingga menengah.",
   submissionUrl: "https://forms.google.com", // Ganti dengan link Google Form yang sebenarnya
@@ -23,7 +24,6 @@ Upload hasil tugasmu melalui form di bawah ini.`,
   lessons: [
     {
       id: "html-intro",
-      moduleId: "mod-html",
       title: "Apa itu Web Development?",
       type: "text",
       description: "Baca artikel ini sebelum memulai praktek coding.",
@@ -42,7 +42,6 @@ Upload hasil tugasmu melalui form di bawah ini.`,
     },
     {
       id: "html-latihan-1",
-      moduleId: "mod-html",
       title: "Latihan: Struktur Dasar HTML",
       type: "exercise",
       description: "Uji pemahamanmu tentang struktur dasar HTML5.",
@@ -67,7 +66,6 @@ Upload hasil tugasmu melalui form di bawah ini.`,
     },
     {
       id: "html-1",
-      moduleId: "mod-html",
       title: "Pendahuluan HTML (1/13)",
       type: "video",
       description: "Pengenalan tentang apa itu HTML, sejarahnya, dan mengapa kita perlu mempelajarinya.",
@@ -199,6 +197,7 @@ Upload hasil tugasmu melalui form di bawah ini.`,
 
 export const CSS_MODULE: Module = {
   id: "mod-css",
+  slug: "css-dasar",
   title: "🎨 CSS Dasar",
   description: "Percantik halaman webmu dengan gaya, warna, dan tata letak yang menarik menggunakan CSS modern.",
   submissionUrl: "https://forms.google.com",
@@ -206,7 +205,6 @@ export const CSS_MODULE: Module = {
   lessons: [
     {
       id: "css-intro",
-      moduleId: "mod-css",
       title: "Mengenal CSS",
       type: "video",
       description: "Apa itu CSS dan bagaimana cara menghubungkannya dengan HTML?",
@@ -216,7 +214,6 @@ export const CSS_MODULE: Module = {
     },
     {
       id: "css-latihan-1",
-      moduleId: "mod-css",
       title: "Latihan: Warna & Font",
       type: "exercise",
       description: "Uji pengetahuanmu tentang pewarnaan dan tipografi di CSS.",

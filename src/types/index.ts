@@ -1,44 +1,44 @@
 export type Attachment = {
-  title: string
-  url: string
-  type?: 'pdf' | 'zip' | 'image' | 'code' | 'link' | string
-}
+  title: string;
+  file?: string;
+  url?: string;
+  type?: "pdf" | "zip" | "image" | "code" | "link" | string;
+};
 
 export type Lesson = {
-  id: string
-  moduleId: string
-  title: string
-  type?: 'video' | 'text' | 'exercise'
-  description?: string
-  video?: string // YouTube ID, optional
-  content?: string // Markdown or HTML content, optional
-  checklist?: string[] // List of task strings
-  attachments?: Attachment[] // Downloadable media/files
-  duration?: number
-  minWatchPercentage?: number // Default 90%
-  minScorePercentage?: number // Default 80%
+  id: string;
+  title: string;
+  type?: "video" | "text" | "exercise";
+  description?: string;
+  content?: string; // Markdown or HTML content, optional
+  video?: string; // YouTube ID, optional
+  minWatchPercentage?: number; // Default 90%
+  minScorePercentage?: number; // Default 80%
   exercise?: {
-    type: 'quiz' | 'code'
+    type: "quiz" | "code";
     questions?: {
-      id: string
-      question: string
-      options: string[]
-      correctAnswer: number
-    }[]
-    initialCode?: string
-    solution?: string
-  }
-}
+      id: string;
+      question: string;
+      options: string[];
+      correctAnswer: number;
+      explanation?: string;
+    }[];
+  };
+  checklist?: string[]; // List of task strings
+  attachments?: Attachment[]; // Downloadable media/files
+  duration?: number;
+};
 
 export type Module = {
-  id: string
-  title: string
-  description?: string
-  submissionUrl?: string
-  submissionDescription?: string
-  submissionAttachments?: Attachment[]
-  lessons: Lesson[]
-}
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  submissionUrl?: string;
+  submissionDescription?: string;
+  submissionAttachments?: Attachment[];
+  lessons: Lesson[];
+};
 
 export type ProgressMap = Record<string, {
   seen: Record<number, boolean>
