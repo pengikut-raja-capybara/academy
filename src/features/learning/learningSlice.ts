@@ -36,8 +36,9 @@ const loadState = (): Partial<LearningState> => {
 const savedState = loadState();
 
 const initialState: LearningState = {
-  allModules: [], // Dimulai dari kosong agar sistem melakukan fetch dan menampilkan skeleton
+  allModules: savedState.allModules || [], 
   status: 'idle',
+
   detailStatus: {},
   error: null,
   selectedModuleId: savedState.selectedModuleId || "",

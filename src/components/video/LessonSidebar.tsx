@@ -2,6 +2,8 @@ import { CheckCircle2, PlayCircle, FileText, Lock, HelpCircle, Flag } from "luci
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { selectLesson } from "../../features/learning/learningSlice";
 import type { Module, Lesson } from "../../types";
+import { calculateLessonProgress } from "../../utils/progress";
+
 
 interface LessonSidebarProps {
   modules: Module;
@@ -25,36 +27,16 @@ export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelec
       >
         <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">{modules.title}</h2>
         <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">{modules.lessons?.length || 0} materi</span>
+
+
       </button>
 
       <div className="space-y-8">
         <div className="space-y-3">
           <ul className="space-y-1">
             {modules.lessons?.map((lesson: Lesson, index: number) => {
-              const lessonProgress = progress[lesson.id] || (lesson.video ? progress[lesson.video] : undefined);
-              const currentPos = lessonProgress?.lastWatchedSec || 0;
-              const duration = lessonProgress?.duration || lesson.duration || 1;
-              const rawVideoPct = Math.min(100, Math.round((currentPos / duration) * 100));
-              const minPct = lesson.minWatchPercentage || 90;
-              const videoPct = Math.min(100, Math.round((rawVideoPct / minPct) * 100));
+              const { isCompleted, lessonPct: pct } = calculateLessonProgress(lesson, progress);
 
-              const checklistTotal = lesson.checklist?.length || 0;
-              const checklistDone = Object.values(lessonProgress?.checklist || {}).filter(Boolean).length;
-              const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 100;
-
-              // Integrated Progress
-              let pct = 0;
-              const isCompleted = lessonProgress?.completed || (lesson.type !== "exercise" && (lesson.video ? videoPct >= 100 : true) && (checklistTotal > 0 ? checklistPct === 100 : true));
-
-              if (lesson.type === "exercise") {
-                pct = isCompleted ? 100 : 0;
-              } else if (lesson.video && checklistTotal > 0) {
-                pct = Math.round((videoPct + checklistPct) / 2);
-              } else if (lesson.video) {
-                pct = videoPct;
-              } else {
-                pct = checklistPct;
-              }
 
               const isSelected = !isOverviewSelected && selectedLessonId === lesson.id;
 

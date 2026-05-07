@@ -23,38 +23,14 @@ import {
 } from "lucide-react";
 import { toggleChecklistItem, selectLesson, selectModule, completeExercise, resetExercise, fetchModuleDetail } from "../features/learning/learningSlice";
 import QuizPlayer from "../components/exercise/QuizPlayer";
-import type { Lesson, ProgressMap, Attachment, Module } from "../types";
+import type { Lesson, Attachment, Module } from "../types";
 import { resolveAssetUrl } from "../services/cms";
 import { toSafeHtml } from "../utils/markdown";
+import { calculateLessonProgress } from "../utils/progress";
 
 // ─── Helpers ────────────────────────────────────────────
 
-function calcCompletion(lesson: Lesson, progress: ProgressMap) {
-  const lessonProgress = progress[lesson.id] ?? (lesson.video ? progress[lesson.video] : undefined);
-
-  if (lesson.type === "exercise") {
-    return {
-      lessonProgress,
-      videoPct: 0,
-      checklistPct: 100,
-      isCompleted: !!lessonProgress?.completed,
-    };
-  }
-
-  const currentPos = lessonProgress?.lastWatchedSec ?? 0;
-  const duration = lessonProgress?.duration ?? lesson.duration ?? 1;
-  const rawVideoPct = Math.min(100, Math.round((currentPos / duration) * 100));
-  const minPct = lesson.minWatchPercentage ?? 90;
-  const videoPct = Math.min(100, Math.round((rawVideoPct / minPct) * 100));
-
-  const checklistTotal = lesson.checklist?.length ?? 0;
-  const checklistDone = Object.values(lessonProgress?.checklist ?? {}).filter(Boolean).length;
-  const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 100;
-
-  const isCompleted = !!lessonProgress?.completed || ((lesson.video ? videoPct >= 100 : true) && (checklistTotal > 0 ? checklistPct === 100 : true));
-
-  return { lessonProgress, videoPct, checklistPct, isCompleted };
-}
+// calcCompletion is now replaced by calculateLessonProgress utility
 
 // ─── Sub-components ─────────────────────────────────────
 
@@ -348,7 +324,7 @@ const NavigationFooter = memo(function NavigationFooter({
         </button>
         <div className="h-5 w-px bg-border" />
         <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
-          {currentIdx + 1} / {totalLessons}
+          {currentIdx >= totalLessons ? "Tugas Akhir" : `${currentIdx + 1} / ${totalLessons}`}
         </span>
       </div>
 
@@ -613,7 +589,8 @@ export default function LearningPage() {
     };
   }, [allLessons, selectedLessonId]);
 
-  const { lessonProgress, isCompleted } = useMemo(() => calcCompletion(selectedLesson, progress), [selectedLesson, progress]);
+  const { isCompleted } = useMemo(() => calculateLessonProgress(selectedLesson, progress), [selectedLesson, progress]);
+  const lessonProgress = progress[selectedLesson.id] ?? (selectedLesson.video ? progress[selectedLesson.video] : undefined);
 
   const allLessonsCompleted = useMemo(
     () =>
@@ -804,7 +781,7 @@ export default function LearningPage() {
         {!isIntroSelected && (
           <NavigationFooter
             currentIdx={isOverviewSelected ? allLessons.length : currentIdx}
-            totalLessons={allLessons.length + (hasSubmission ? 1 : 0)}
+            totalLessons={allLessons.length}
             isCompleted={isOverviewSelected ? true : showNextToOverview ? true : isCompleted}
             onPrev={handlePrev}
             onNext={handleNext}

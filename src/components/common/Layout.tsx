@@ -7,7 +7,7 @@ import Footer from "./Footer";
 export default function Layout({ children }: { children: ReactNode }) {
   const theme = useAppSelector((state) => state.learning.theme);
   const { pathname } = useLocation();
-  const isLearningPage = pathname.startsWith("/learning");
+  const isLearningDetail = pathname.startsWith("/learning/");
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -15,11 +15,17 @@ export default function Layout({ children }: { children: ReactNode }) {
     root.classList.add(theme);
   }, [theme]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20">
-      <Header />
+      {!isLearningDetail && <Header />}
       <main className="flex-1">{children}</main>
-      {!isLearningPage && <Footer />}
+      {!isLearningDetail && <Footer />}
     </div>
   );
 }
+

@@ -1,13 +1,32 @@
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { useNavigate } from "react-router";
 import { selectModule } from "../features/learning/learningSlice";
-import { Trophy, ArrowRight, Search, Sparkles, Code2, BookOpen } from "lucide-react";
+import { Trophy, ArrowRight, Search, Sparkles, BookOpen } from "lucide-react";
+
 import { memo, useState } from "react";
 import type { Module } from "../types";
+import { resolveAssetUrl } from "../services/cms";
+import { calculateModuleProgress } from "../utils/progress";
 
-const ModuleCard = memo(function ModuleCard({ mod, onStart }: { mod: Module & { percentage: number; completedLessons: number; totalLessons: number }; onStart: (id: string) => void }) {
-  const isHtml = mod.id === "mod-html";
-  const coverImage = isHtml ? "/images/html_cover.png" : "/images/css_cover.png";
+const getModuleMeta = (mod: Module) => {
+  // Static visual configuration for all modules
+  const color = mod.color || "from-blue-600 to-purple-600";
+  const icon = <BookOpen size={12} />;
+  const thumbnail = mod.thumbnail ? resolveAssetUrl(mod.thumbnail) : "/images/default-modul.png";
+
+
+  return { color, icon, thumbnail };
+};
+
+const ModuleCard = memo(function ModuleCard({
+  mod,
+  onStart,
+}: {
+  mod: Module & { percentage: number; completedLessons: number; totalLessons: number; hasStarted: boolean };
+  onStart: (id: string) => void;
+}) {
+  const meta = getModuleMeta(mod);
+
   return (
     <div
       onClick={() => onStart(mod.slug)}
@@ -15,14 +34,13 @@ const ModuleCard = memo(function ModuleCard({ mod, onStart }: { mod: Module & { 
     >
       {/* Top Header with Image */}
       <div className="h-52 relative overflow-hidden bg-muted">
-        <img src={coverImage} alt={mod.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <img src={meta.thumbnail} alt={mod.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
 
         {/* Floating Badges */}
-        <div className="absolute top-4 left-4 z-10">
-          <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
-            <Code2 size={12} className={isHtml ? "text-blue-400" : "text-pink-400"} />
-            {isHtml ? "Frontend" : "Styling"}
+        <div className="absolute top-4 left-4 z-10 flex flex-wrap gap-2">
+          <div className="p-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/20 text-white shadow-sm group-hover:scale-110 transition-transform duration-300">
+            <span className={`flex items-center justify-center`}>{meta.icon}</span>
           </div>
         </div>
 
@@ -50,9 +68,7 @@ const ModuleCard = memo(function ModuleCard({ mod, onStart }: { mod: Module & { 
           </div>
           <div className="h-2 w-full bg-muted rounded-full overflow-hidden border border-border/50">
             <div
-              className={`h-full transition-all duration-1000 ease-out ${
-                mod.percentage === 100 ? "bg-gradient-to-r from-green-500 to-emerald-500" : isHtml ? "bg-gradient-to-r from-blue-600 to-cyan-500" : "bg-gradient-to-r from-pink-500 to-purple-500"
-              }`}
+              className={`h-full transition-all duration-1000 ease-out ${mod.percentage === 100 ? "bg-gradient-to-r from-green-500 to-emerald-500" : `bg-gradient-to-r ${meta.color}`}`}
               style={{ width: `${mod.percentage}%` }}
             />
           </div>
@@ -65,7 +81,8 @@ const ModuleCard = memo(function ModuleCard({ mod, onStart }: { mod: Module & { 
               : "bg-primary text-primary-foreground hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/20"
           }`}
         >
-          {mod.percentage > 0 ? (mod.percentage === 100 ? "Review Modul" : "Lanjutkan Belajar") : "Mulai Belajar"}
+          {mod.percentage === 100 ? "Review Modul" : mod.hasStarted ? "Lanjutkan Belajar" : "Mulai Belajar"}
+
           <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
         </button>
       </div>
@@ -82,15 +99,14 @@ export default function ModulesPage() {
   // Calculate progress for each module
   const moduleProgress = allModules
     .map((mod) => {
-      const totalLessons = mod.lessons?.length || 0;
-      const completedLessons = mod.lessons?.filter((l) => progress[l.id]?.completed).length || 0;
-      const percentage = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-      return { ...mod, percentage, completedLessons, totalLessons };
+      const { percentage, completedCount, totalSteps, hasStarted } = calculateModuleProgress(mod.lessons || [], progress, !!mod.submissionUrl);
+      return { ...mod, percentage, completedLessons: completedCount, totalLessons: totalSteps, hasStarted };
     })
+
     .filter((mod) => mod.title.toLowerCase().includes(searchQuery.toLowerCase()) || mod.description?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const handleStart = (slug: string) => {
-    const mod = allModules.find(m => m.slug === slug || m.id === slug);
+    const mod = allModules.find((m) => m.slug === slug || m.id === slug);
     if (mod) {
       dispatch(selectModule(mod.id));
       navigate(`/learning/${mod.slug}`);
@@ -126,32 +142,37 @@ export default function ModulesPage() {
 
             {/* Search Bar */}
             <div className="w-full max-w-xl mx-auto relative animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300 group">
-              {/* Subtle glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full blur-2xl transition-all duration-500 group-focus-within:from-blue-500/20 group-focus-within:to-purple-500/20" />
+              {/* Dynamic glow effect */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-xl opacity-0 group-focus-within:opacity-20 transition duration-700" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-full blur-2xl" />
 
-              <div className="relative bg-card/70 backdrop-blur-2xl border border-border rounded-full flex items-center px-6 py-4 shadow-xl focus-within:shadow-2xl focus-within:border-primary/50 transition-all duration-300">
-                <Search size={20} className="text-muted-foreground mr-3 transition-colors group-focus-within:text-primary" />
+              <div className="relative bg-card/50 backdrop-blur-3xl border border-border/60 rounded-full flex items-center px-6 py-4 shadow-xl focus-within:shadow-2xl focus-within:border-primary/50 transition-all duration-500 group-hover:border-border">
+                <Search size={20} className="text-muted-foreground mr-3 transition-all duration-500 group-focus-within:text-primary group-focus-within:scale-110" />
                 <input
                   type="text"
                   placeholder="Cari modul, topik, atau bahasa..."
-                  className="bg-transparent border-none outline-none w-full text-foreground placeholder:text-muted-foreground/70 font-semibold text-sm sm:text-base selection:bg-primary/20"
+                  className="bg-transparent border-none outline-none w-full text-foreground placeholder:text-muted-foreground/50 font-bold text-sm sm:text-base selection:bg-primary/30"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+                
+                {/* Subtle active indicator */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 group-focus-within:w-1/3 rounded-full opacity-50" />
               </div>
             </div>
           </div>
+
         </div>
 
         {/* Grid Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
           <div className="flex items-center justify-between mb-12">
             <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
-              Modul Tersedia <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs text-muted-foreground">{status === 'loading' ? '...' : moduleProgress.length}</span>
+              Modul Tersedia <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs text-muted-foreground">{status === "loading" ? "..." : moduleProgress.length}</span>
             </h2>
           </div>
 
-          {status === 'loading' && allModules.length === 0 ? (
+          {status === "loading" && allModules.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-[480px] rounded-3xl bg-card/50 border border-border animate-pulse flex flex-col">

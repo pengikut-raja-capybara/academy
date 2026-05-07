@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { X, Globe, Zap, Users, Scale } from "lucide-react";
+import { X, Globe, Zap, Users, Scale, ShieldCheck, Info, ChartNoAxesColumnIncreasing, Mail } from "lucide-react";
+
+import { Link } from "react-router";
 
 export default function Footer() {
   const [showCredits, setShowCredits] = useState(false);
@@ -10,19 +12,33 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4 sm:gap-3 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">PRC Academy</span>
+
+
             <span className="hidden sm:inline text-muted-foreground">&bull;</span>
-            <span className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider font-bold">&copy; {new Date().getFullYear()} Hak Cipta Pengikut Raja Capybara</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider font-bold">&copy; {new Date().getFullYear()} Pengikut Raja Capybara</span>
           </div>
           <div className="flex items-center gap-3 sm:gap-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            <span>
-              Lisensi MIT <span className="hidden sm:inline">&bull; Open Source</span>
-            </span>
+            <span>Lisensi MIT</span>
+            <span>&bull;</span>
+            <Link to="/about" className="hover:text-primary flex items-center gap-1 transition-colors">
+              <Info size={10} className="sm:w-3 sm:h-3" />
+              <span className="hidden sm:inline">Tentang Platform</span>
+            </Link>
+            <Link to="/roadmap" className="hover:text-primary flex items-center gap-1 transition-colors">
+              <ChartNoAxesColumnIncreasing size={10} className="sm:w-3 sm:h-3" />
+              <span className="hidden sm:inline">Roadmap</span>
+            </Link>
+            <Link to="/privacy" className="hover:text-primary transition-colors flex items-center gap-1">
+              <ShieldCheck size={10} className="sm:w-3 sm:h-3" />
+              Kebijakan Privasi
+            </Link>
             <span className="sm:hidden">&bull;</span>
+
             <button
               onClick={() => setShowCredits(true)}
-              className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent hover:opacity-80 transition-opacity font-black"
+              className="cursor-pointer bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent hover:opacity-80 transition-opacity font-black"
             >
-              TENTANG PLATFORM ✦
+              DI BALIK LAYAR ✦
             </button>
           </div>
         </div>
@@ -39,15 +55,12 @@ export default function Footer() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
-                  Informasi Platform
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Kredit, Atribusi & Legalitas</p>
+                <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">Tentang Platform</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Kredit dan ekosistem di balik layar.</p>
               </div>
-              <button
-                onClick={() => setShowCredits(false)}
-                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors"
-              >
+
+
+              <button onClick={() => setShowCredits(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors">
                 <X size={16} />
               </button>
             </div>
@@ -56,19 +69,19 @@ export default function Footer() {
 
             {/* Credit Items */}
             <div className="space-y-3 sm:space-y-4">
-              <CreditRow icon={<Globe size={16} />} label="Organisasi Induk" value="Pengikut Raja Capybara (PRC)" color="from-blue-500 to-cyan-500" />
-              <CreditRow icon={<Zap size={16} />} label="Dukungan Infrastruktur" value="Angsa Cyber Custodian & Angsa Cyber Academy" color="from-yellow-400 to-orange-500" />
-              <CreditRow icon={<Users size={16} />} label="Pengembang Platform" value="Tim Mahasiswa Sistem Informasi UNSIA" color="from-pink-500 to-rose-500" />
-              <CreditRow icon={<Scale size={16} />} label="Lisensi Perangkat Lunak" value="Lisensi Terbuka MIT (Open Source)" color="from-green-500 to-emerald-500" />
+              <CreditRow icon={<Users size={16} />} label="Dikembangkan Oleh" value="Mahasiswa PJJ Sistem Informasi UNSIA" color="from-pink-500 to-rose-500" />
+              <CreditRow icon={<Globe size={16} />} label="Komunitas Penggerak" value="Pengikut Raja Capybara" color="from-blue-500 to-cyan-500" />
+              <CreditRow icon={<Zap size={16} />} label="Didukung Oleh" value="Angsa Cyber Custodian & Angsa Development Studio" color="from-yellow-400 to-orange-500" />
+              <CreditRow icon={<Scale size={16} />} label="Lisensi" value="MIT" color="from-green-500 to-emerald-500" />
+              <CreditRow icon={<Mail size={16} />} label="Kontak Resmi" value="rajacapybara275@gmail.com" color="from-purple-500 to-indigo-500" />
             </div>
 
             <div className="h-px bg-border" />
 
-            <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-              Dibangun dengan misi mendukung ekosistem edukasi terbuka di Indonesia.
-              <br />
-              Seluruh progres belajar Anda tersimpan dengan aman secara lokal di perangkat ini.
-            </p>
+            <div className="text-[11px] text-muted-foreground text-center leading-relaxed space-y-1">
+              <p>Platform edukasi mandiri yang mengutamakan privasimu.</p>
+              <p className="font-medium text-foreground/70">100% data progres belajar disimpan secara lokal di perangkat ini.</p>
+            </div>
           </div>
         </div>
       )}

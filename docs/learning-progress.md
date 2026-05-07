@@ -25,20 +25,20 @@ type ProgressMap = Record<string, {
 ```
 
 > [!NOTE]
-> Properti `attachments?: Attachment[]` sekarang juga dapat disisipkan baik di tingkat materi individual (`Lesson`) maupun di tingkat akhir modul (`Module.submissionAttachments`) untuk menyediakan lampiran materi yang bisa diunduh.
+> Properti `attachments?: Attachment[]` dapat disisipkan baik di tingkat materi individual (`Lesson`) maupun di tingkat akhir modul (`Module.submissionAttachments`) untuk menyediakan lampiran materi yang bisa diunduh.
 
 ## 2. Logika Kelulusan per Tipe Materi (Completion Logic)
 
 Sistem membedakan syarat kelulusan berdasarkan tipe materi:
 
 ### A. Materi Video (`lesson.video` eksis)
-* **Syarat 1 (Tonton Video):** Pengguna harus menonton persentase tertentu dari video (diatur oleh `lesson.minWatchPercentage`, default 90%). Nilai persentase video akan dinormalisasi (contoh: jika min 90%, menonton 90% akan dianggap 100% progres video).
+* **Syarat 1 (Tonton Video):** Pengguna harus menonton persentase tertentu dari video (diatur oleh `lesson.minWatchPercentage`, default 90%).
 * **Syarat 2 (TO DO / Checklist):** Jika materi memiliki daftar "TO DO", maka seluruh *item* di dalamnya wajib dicentang (100%).
 * Sistem otomatis mencentang item checklist "Tonton video sampai selesai" jika syarat 1 terpenuhi.
 
 ### B. Materi Latihan / Kuis (`lesson.type === "exercise"`)
 * Validasi sangat ketat: status `completed` **harus** `true` secara eksplisit dari dalam *state*.
-* Status ini hanya berubah menjadi `true` ketika pengguna menekan tombol **"Simpan & Lanjut"** (yang akan men-dispatch *action* `completeExercise`) setelah mendapat skor di atas batas minimal lulus (diatur oleh `lesson.minScorePercentage`, default 80%).
+* Status ini hanya berubah menjadi `true` ketika pengguna menekan tombol **"Simpan & Lanjut"** (action `completeExercise`) setelah mendapat skor di atas batas minimal lulus (default 80%).
 
 ### C. Materi Teks (Tanpa Video & Bukan Latihan)
 * **Jika ada TO DO:** Harus mencentang semua item TO DO (100%).
@@ -68,19 +68,18 @@ Sistem menghitung nilai rata-rata modul secara otomatis untuk ditampilkan pada l
 3. **Format Tampilan:**
    - **Angka Bulat:** Ditampilkan tanpa desimal (contoh: `100`, `80`).
    - **Angka Pecahan:** Ditampilkan dengan **2 digit** desimal dan pemisah koma (contoh: `75,50`, `40,25`).
-   - Tanda persen (`%`) dihilangkan pada tampilan statistik utama sesuai preferensi desain.
+   - Tanda persen (`%`) dihilangkan pada tampilan statistik utama.
 
-## 6. Redux Actions Utama
-
-Berikut adalah daftar perintah (actions) yang mengontrol data belajar pengguna di dalam `learningSlice.ts`:
+## 6. Redux Actions (Learning Logic)
 
 | Action | Fungsi |
 | :--- | :--- |
-| `updateProgress` | Dijalankan terus menerus saat video diputar. Mengupdate `lastWatchedSec`, mengecek apakah video sudah mencapai batas tonton minimum, dan mengubah `completed` menjadi `true` jika seluruh syarat terpenuhi. |
-| `toggleChecklistItem` | Mencentang/batal mencentang item TO DO. Fungsi ini juga akan mengevaluasi ulang status `completed` dari keseluruhan materi (berguna untuk materi berjenis teks). |
-| `completeExercise` | Dipanggil saat pengguna lulus kuis. Secara paksa mencentang semua item TO DO yang ada di kuis tersebut dan mengubah status `completed` menjadi `true`. |
-| `resetExercise` | Digunakan saat pengguna menekan "Coba Lagi". Menghapus seluruh status TO DO dan mereset `completed` menjadi `false`. |
+| `selectModule` | Mengatur modul aktif yang sedang dipelajari. |
+| `updateProgress` | Mengupdate durasi tonton video dan mengecek syarat kelulusan otomatis. |
+| `toggleChecklistItem` | Mencentang item TO DO dan mengevaluasi ulang status kelulusan materi teks. |
+| `completeExercise` | Dipanggil saat pengguna lulus kuis; mencentang semua TO DO dan mengubah status menjadi `completed`. |
+| `resetExercise` | Mereset status kelulusan dan jawaban kuis untuk percobaan ulang. |
 
 ## 7. Ringkasan Perbaikan Bug (Log Historis)
-* **Kasus:** Kuis langsung terbuka dan dianggap 100% selesai padahal belum dikerjakan, dan materi di bawahnya langsung terbuka (*unlocked*).
-* **Solusi:** Memberikan pengecualian eksplisit (pengecekan `lesson.type === 'exercise'`) di dalam `calcCompletion` (pada `LearningPage.tsx`) serta logika *lock* (pada `LessonSidebar.tsx`). Perbaikan ini memastikan sistem tidak lagi menganggap kuis selesai berdasarkan kondisi otomatis (seperti `lesson.video` yang bernilai *undefined*).
+* **Kasus:** Kuis langsung dianggap 100% selesai padahal belum dikerjakan.
+* **Solusi:** Memberikan pengecualian eksplisit (pengecekan `lesson.type === 'exercise'`) di dalam `calcCompletion` dan logika *lock*. Perbaikan ini memastikan kuis hanya lulus via action `completeExercise`.

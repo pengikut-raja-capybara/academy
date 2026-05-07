@@ -38,16 +38,22 @@ export type Module = {
   submissionDescription?: string;
   submissionAttachments?: Attachment[];
   lessons?: Lesson[];
+  thumbnail?: string;
+  category?: string;
+  color?: string;
 };
 
-export type ProgressMap = Record<string, {
-  seen: Record<number, boolean>
-  lastWatchedSec: number
-  duration?: number
-  completed: boolean
-  checklist: Record<string, boolean> // taskIndex/id -> completed
-  quizAnswers?: Record<number, number> // questionIndex -> selectedOptionIndex
-  quizScore?: number
-}>
+export type ProgressMap = Record<
+  string,
+  {
+    seen: Record<number, boolean>;
+    lastWatchedSec: number;
+    duration?: number;
+    completed: boolean;
+    checklist: Record<string, boolean>; // taskIndex/id -> completed
+    quizAnswers?: Record<number, number>; // questionIndex -> selectedOptionIndex
+    quizScore?: number;
+  }
+>;
 
-export type Theme = 'light' | 'dark'
+export type Theme = "light" | "dark";

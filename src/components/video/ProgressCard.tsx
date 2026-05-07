@@ -1,47 +1,16 @@
 import { Target } from "lucide-react";
 import { useAppSelector } from "../../store/hooks";
-import type { Module, Lesson } from "../../types";
+import type { Module } from "../../types";
+import { calculateModuleProgress } from "../../utils/progress";
 
 export default function ProgressCard({ module }: { module?: Module }) {
   const { allModules, selectedModuleId, progress } = useAppSelector((state) => state.learning);
   const activeModule = module || allModules.find((m) => m.id === selectedModuleId) || allModules[0];
 
-  const allLessons = activeModule?.lessons || [];
+  const { percentage: overallPct, completedCount, totalCount } = calculateModuleProgress(activeModule?.lessons || [], progress, !!activeModule?.submissionUrl);
 
-  const totalProgress = allLessons.reduce((acc: number, lesson: Lesson) => {
-    const lessonProgress = progress[lesson.id] || (lesson.video ? progress[lesson.video] : undefined);
-    if (!lessonProgress) return acc;
 
-    const currentPos = lessonProgress.lastWatchedSec || 0;
-    const duration = lessonProgress.duration || lesson.duration || 1;
-    const rawVideoPct = Math.min(100, Math.round((currentPos / duration) * 100));
-    const minPct = lesson.minWatchPercentage || 90;
-    const videoPct = Math.min(100, Math.round((rawVideoPct / minPct) * 100));
 
-    const checklistTotal = lesson.checklist?.length || 0;
-    const checklistDone = Object.values(lessonProgress.checklist || {}).filter(Boolean).length;
-    const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 100;
-
-    const isCompleted = lessonProgress.completed || 
-      ((lesson.video ? videoPct >= (lesson.minWatchPercentage || 90) : true) && 
-      (checklistTotal > 0 ? checklistPct === 100 : true));
-
-    let lessonPct = 0;
-    if (lesson.type === "exercise") {
-      lessonPct = isCompleted ? 100 : 0;
-    } else if (lesson.video && checklistTotal > 0) {
-      lessonPct = (videoPct + checklistPct) / 2;
-    } else if (lesson.video) {
-      lessonPct = videoPct;
-    } else {
-      lessonPct = checklistPct;
-    }
-
-    return acc + lessonPct;
-  }, 0);
-
-  const overallPct = allLessons.length > 0 ? Math.round(totalProgress / allLessons.length) : 0;
-  const completedCount = allLessons.filter((l: Lesson) => progress[l.id]?.completed).length;
 
   return (
     <div className="space-y-4">
@@ -51,7 +20,10 @@ export default function ProgressCard({ module }: { module?: Module }) {
             <Target size={12} className="text-primary" /> Progres Kursus
           </h3>
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 truncate max-w-[180px]">
-            {completedCount} dari {allLessons.length} Materi Selesai
+            {completedCount} dari {totalCount} Materi Selesai
+
+
+
           </p>
         </div>
         <div className="text-lg font-black text-primary">{overallPct}%</div>

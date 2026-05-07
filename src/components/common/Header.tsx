@@ -1,30 +1,94 @@
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import ThemeToggle from "./ThemeToggle";
+import { Sparkles, GitForkIcon } from "lucide-react";
 
 export default function Header() {
+  const location = useLocation();
+
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <header className="sticky top-0 z-50 bg-background/60 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 backdrop-blur-xl border-b border-border">
-      <nav className="px-4 sm:px-6 lg:px-10 h-14 sm:h-16 flex items-center justify-between gap-4">
-        <Link
-          to="/"
-          className="text-lg sm:text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent hover:opacity-80 transition shrink-0"
-        >
-          PRC Academy
-        </Link>
-        <div className="flex items-center gap-3 sm:gap-5">
-          <Link to="/" className="text-sm font-bold text-muted-foreground hover:text-purple-500 transition hidden sm:block">
-            Beranda
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/70 backdrop-blur-xl transition-all duration-300">
+      {/* Top Accent Line */}
+      <div className="h-[2px] w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-80" />
+
+      <nav className="mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-8">
+        <div className="flex items-center gap-10">
+          <Link to="/" className="relative group flex items-center gap-2">
+            {/* Logo Glow */}
+            <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg blur opacity-0 group-hover:opacity-10 transition duration-500" />
+
+            <span className="text-xl sm:text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-[1.02]">
+              PRC ACADEMY
+            </span>
           </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-1">
+            <NavLink to="/" active={isActive("/")}>
+              Beranda
+            </NavLink>
+            <NavLink to="/roadmap" active={isActive("/roadmap")}>
+              Roadmap
+            </NavLink>
+            <NavLink to="/about" active={isActive("/about")}>
+              Tentang
+            </NavLink>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link
             to="/learning"
-            className="px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-purple-500/40 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-1.5"
+            className={`
+              relative overflow-hidden px-5 py-2 rounded-xl text-sm font-black transition-all duration-300
+              flex items-center gap-2 shadow-lg active:scale-95 group
+              bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 text-white
+              ${
+                location.pathname.startsWith("/learning")
+                  ? "shadow-purple-500/50 ring-2 ring-purple-500/20 ring-offset-2 ring-offset-background"
+                  : "hover:shadow-purple-500/40 hover:-translate-y-0.5 shadow-purple-500/20"
+              }
+
+
+            `}
           >
-            Belajar ✨
+            <span className="relative z-10">Mulai Belajar</span>
+            <Sparkles size={14} className={`relative z-10 transition-transform duration-500 ${location.pathname.startsWith("/learning") ? "rotate-12" : "group-hover:rotate-45"}`} />
+
+            {/* Animated Background Shine */}
+            <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-25deg] group-hover:animate-shine" />
           </Link>
-          <div className="h-5 w-px bg-border hidden sm:block" />
-          <ThemeToggle />
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 pr-2 border-l border-border/50">
+            <a
+              href="https://github.com/pengikut-raja-capybara/academy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all hidden sm:flex"
+            >
+              <GitForkIcon size={18} />
+            </a>
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
     </header>
+  );
+}
+
+function NavLink({ to, children, active }: { to: string; children: React.ReactNode; active?: boolean }) {
+  return (
+    <Link
+      to={to}
+      className={`
+        relative px-4 py-2 text-sm font-bold transition-all duration-300 rounded-lg
+        ${active ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"}
+      `}
+    >
+      {children}
+      {active && <span className="absolute bottom-1.5 left-4 right-4 h-0.5 bg-primary rounded-full animate-in fade-in zoom-in duration-300" />}
+    </Link>
   );
 }
