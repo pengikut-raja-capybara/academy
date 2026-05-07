@@ -8,6 +8,7 @@ import { compression } from 'vite-plugin-compression2'
 export default defineConfig({
   plugins: [react(), tailwindcss(), ViteImageOptimizer(), compression()],
   base: process.env.GITHUB_ACTIONS ? "/academy/" : "/",
+
   build: {
     rollupOptions: {
       output: {
