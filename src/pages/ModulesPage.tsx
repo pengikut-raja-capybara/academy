@@ -12,7 +12,10 @@ const getModuleMeta = (mod: Module) => {
   // Static visual configuration for all modules
   const color = mod.color || "from-blue-600 to-purple-600";
   const icon = <BookOpen size={12} />;
-  const thumbnail = mod.thumbnail ? resolveAssetUrl(mod.thumbnail) : "/images/default-modul.png";
+  const thumbnail = mod.thumbnail 
+    ? resolveAssetUrl(mod.thumbnail) 
+    : `${import.meta.env.BASE_URL}images/default-modul.png`.replace(/\/+/g, "/");
+
 
 
   return { color, icon, thumbnail };
