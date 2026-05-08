@@ -179,11 +179,12 @@ export const learningSlice = createSlice({
       .addCase(fetchModules.fulfilled, (state, action) => {
         state.status = 'succeeded';
         
-        // Merge: jangan timpa lessons yang sudah di-fetch sebelumnya
+        // Merge: preserve lessons dari index, atau dari existing detail fetch
         state.allModules = (action.payload as Module[]).map((indexMod) => {
           const existing = state.allModules.find(m => m.id === indexMod.id || m.slug === indexMod.slug);
-          // Kalau modul ini sudah punya lessons (dari fetchModuleDetail), pertahankan
-          return existing?.lessons ? { ...indexMod, lessons: existing.lessons } : indexMod;
+          // Priority: lessons dari indexMod > lessons dari existing detail > tidak ada lessons
+          const lessons = indexMod.lessons || existing?.lessons;
+          return { ...indexMod, ...(lessons && { lessons }) };
         });
         
         // If current selectedModuleId is invalid, reset it

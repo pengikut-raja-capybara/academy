@@ -39,6 +39,7 @@ export type Module = {
   submissionAttachments?: Attachment[];
   lessons?: Lesson[];
   thumbnail?: string;
+  image?: string;
   category?: string;
   color?: string;
 };
@@ -57,3 +58,10 @@ export type ProgressMap = Record<
 >;
 
 export type Theme = "light" | "dark";
+
+export type ModuleWithProgress = Module & {
+  percentage: number;
+  completedLessons: number;
+  totalLessons: number;
+  hasStarted: boolean;
+};

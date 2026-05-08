@@ -1,31 +1,29 @@
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { useNavigate } from "react-router";
-import { selectModule } from "../features/learning/learningSlice";
+import { selectModule, fetchModuleDetail } from "../features/learning/learningSlice";
 import { Trophy, ArrowRight, Search, Sparkles, BookOpen } from "lucide-react";
 
-import { memo, useState } from "react";
-import type { Module } from "../types";
+import { memo, useState, useCallback, useMemo, useEffect } from "react";
+import type { Module, ModuleWithProgress } from "../types";
 import { resolveAssetUrl } from "../services/cms";
 import { calculateModuleProgress } from "../utils/progress";
 
 const getModuleMeta = (mod: Module) => {
   // Static visual configuration for all modules
   const color = mod.color || "from-blue-600 to-purple-600";
-  const icon = <BookOpen size={12} />;
-  const thumbnail = mod.thumbnail 
-    ? resolveAssetUrl(mod.thumbnail) 
+  const imageSource = mod.thumbnail || mod.image;
+  const thumbnail = imageSource
+    ? resolveAssetUrl(imageSource)
     : `${import.meta.env.BASE_URL}images/default-modul.png`.replace(/\/+/g, "/");
 
-
-
-  return { color, icon, thumbnail };
+  return { color, thumbnail };
 };
 
 const ModuleCard = memo(function ModuleCard({
   mod,
   onStart,
 }: {
-  mod: Module & { percentage: number; completedLessons: number; totalLessons: number; hasStarted: boolean };
+  mod: ModuleWithProgress;
   onStart: (id: string) => void;
 }) {
   const meta = getModuleMeta(mod);
@@ -43,7 +41,7 @@ const ModuleCard = memo(function ModuleCard({
         {/* Floating Badges */}
         <div className="absolute top-4 left-4 z-10 flex flex-wrap gap-2">
           <div className="p-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/20 text-white shadow-sm group-hover:scale-110 transition-transform duration-300">
-            <span className={`flex items-center justify-center`}>{meta.icon}</span>
+            <span className={`flex items-center justify-center`}><BookOpen size={12} /></span>
           </div>
         </div>
 
@@ -99,22 +97,32 @@ export default function ModulesPage() {
   const dispatch = useAppDispatch();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Calculate progress for each module
-  const moduleProgress = allModules
-    .map((mod) => {
-      const { percentage, completedCount, totalSteps, hasStarted } = calculateModuleProgress(mod.lessons || [], progress, !!mod.submissionUrl);
-      return { ...mod, percentage, completedLessons: completedCount, totalLessons: totalSteps, hasStarted };
-    })
+  // Auto-fetch module details for modules without lessons
+  useEffect(() => {
+    allModules.forEach((mod) => {
+      if (!mod.lessons || mod.lessons.length === 0) {
+        dispatch(fetchModuleDetail(mod.slug));
+      }
+    });
+  }, [allModules, dispatch]);
 
-    .filter((mod) => mod.title.toLowerCase().includes(searchQuery.toLowerCase()) || mod.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Calculate progress for each module with memoization
+  const moduleProgress = useMemo(() => {
+    return allModules
+      .map((mod) => {
+        const { percentage, completedCount, totalCount, hasStarted } = calculateModuleProgress(mod.lessons || [], progress, !!mod.submissionUrl);
+        return { ...mod, percentage, completedLessons: completedCount, totalLessons: totalCount, hasStarted } as ModuleWithProgress;
+      })
+      .filter((mod) => mod.title.toLowerCase().includes(searchQuery.toLowerCase()) || mod.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [allModules, progress, searchQuery]);
 
-  const handleStart = (slug: string) => {
+  const handleStart = useCallback((slug: string) => {
     const mod = allModules.find((m) => m.slug === slug || m.id === slug);
     if (mod) {
       dispatch(selectModule(mod.id));
       navigate(`/learning/${mod.slug}`);
     }
-  };
+  }, [allModules, dispatch, navigate]);
 
   return (
     <div className="min-h-screen bg-background relative selection:bg-primary/30">

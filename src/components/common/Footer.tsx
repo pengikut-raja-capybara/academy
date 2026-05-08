@@ -81,6 +81,7 @@ export default function Footer() {
             <div className="text-[11px] text-muted-foreground text-center leading-relaxed space-y-1">
               <p>Platform edukasi mandiri yang mengutamakan privasimu.</p>
               <p className="font-medium text-foreground/70">100% data progres belajar disimpan secara lokal di perangkat ini.</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-3 pt-2 border-t border-border/30">⚠️ Dalam Proses Pengembangan</p>
             </div>
           </div>
         </div>
