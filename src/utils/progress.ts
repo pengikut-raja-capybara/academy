@@ -45,7 +45,7 @@ export function calculateLessonProgress(lesson: Lesson, progress: ProgressMap): 
     (checklistTotal > 0 ? checklistPct === 100 : true)
   );
 
-  let lessonPct = 0;
+  let lessonPct: number;
   if (lesson.video && checklistTotal > 0) {
     lessonPct = Math.round((videoPct + checklistPct) / 2);
   } else if (lesson.video) {

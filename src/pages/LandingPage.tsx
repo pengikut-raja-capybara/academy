@@ -1,9 +1,69 @@
+import { useRef, useState } from "react";
 import { Link } from "react-router";
-import { ChevronRight, BookOpen, Zap, BarChart3, Lock, Smile, Sparkles } from "lucide-react";
+import { ChevronRight, BookOpen, Zap, BarChart3, Lock, Smile, Sparkles, Upload, FolderSync } from "lucide-react";
+import ConfirmDialog from "../components/common/ConfirmDialog";
+import { useAppSelector, useAppDispatch } from "../store/hooks";
+import { importProgress as importProgressAction } from "../features/learning/learningSlice";
+import { ToastContainer } from "../components/common/Toast";
+import type { Toast } from "../components/common/Toast";
 
 export default function LandingPage() {
+  const progress = useAppSelector((state) => state.learning.progress);
+  const userName = useAppSelector((state) => state.learning.userName);
+  const dispatch = useAppDispatch();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [toasts, setToasts] = useState<(Toast & { id: string })[]>([]);
+  const [importLoading, setImportLoading] = useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+
+  const hasAnyProgress = Object.values(progress).some((p) => p && (p.completed || (p.lastWatchedSec ?? 0) > 0 || Object.keys(p.checklist || {}).length > 0));
+
+  const addToast = (type: "success" | "error" | "info", title: string, description?: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts((prev) => [...prev, { id, type, title, description, duration: type === "error" ? 6000 : 4000, onClose: () => {} }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), type === "error" ? 6000 : 4000);
+  };
+
+  const ctaBase = "inline-flex items-center gap-2 font-extrabold py-4 sm:py-5 px-8 sm:px-10 rounded-2xl w-full sm:w-auto justify-center transition transform active:scale-95";
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportLoading(true);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target?.result as string);
+        if (imported && typeof imported === "object" && !Array.isArray(imported)) {
+          dispatch(importProgressAction(imported as any));
+          addToast("success", "Restore Berhasil", "Progres berhasil dimuat. Halaman akan dimuat ulang...");
+          setTimeout(() => {
+            window.location.href = "/dashboard";
+          }, 1000);
+        } else {
+          addToast("error", "Format File Tidak Valid", "Pastikan file .json berisi data progres yang benar.");
+        }
+      } catch {
+        addToast("error", "Gagal Membaca File", "Ada kesalahan saat membaca file. Coba lagi.");
+      } finally {
+        setImportLoading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.onerror = () => {
+      addToast("error", "Gagal Membaca File", "Terjadi kesalahan saat membaca file.");
+      setImportLoading(false);
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="space-y-0 pb-20">
+      {/* Toasts */}
+      <ToastContainer toasts={toasts} onClose={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
+
+      {/* Banner moved below hero (see below) */}
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden py-20 bg-background">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -17,20 +77,57 @@ export default function LandingPage() {
             <Sparkles size={15} /> Platform Belajar Gratis & Open Source
           </div>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-6 tracking-tight leading-tight">
-            Belajar <br />
-            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">Jadi Lebih Seru</span>
+            {userName ? (
+              <>
+                Halo, <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">{userName.split(" ")[0]}!</span>
+              </>
+            ) : (
+              <>
+                Belajar <span className="bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 bg-clip-text text-transparent">Jadi Lebih Seru</span>
+              </>
+            )}
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-8 sm:mb-12 leading-relaxed max-w-3xl mx-auto font-medium px-2">
             PRC Academy membantu Anda menguasai teknologi dengan materi terstruktur dan tracking progress otomatis.
           </p>
-          <div className="flex gap-6 justify-center flex-wrap">
+          <div className="flex gap-4 justify-center flex-wrap">
+            {/* Primary CTA - changes text/target when progress exists */}
             <Link
-              to="/learning"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 text-white font-extrabold py-4 sm:py-5 px-8 sm:px-10 rounded-2xl hover:opacity-90 shadow-2xl shadow-purple-500/40 transition transform hover:scale-105 active:scale-95 hover:shadow-purple-500/60 w-full sm:w-auto justify-center"
+              to={!userName ? "/welcome" : hasAnyProgress ? "/dashboard" : "/learning"}
+              className={`${ctaBase} bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 text-white shadow-2xl shadow-purple-500/40 hover:opacity-95`}
             >
-              Mulai Belajar Sekarang <ChevronRight size={22} />
+              {!userName || !hasAnyProgress ? "Mulai Belajar Sekarang" : "Lanjutkan Belajar"} <ChevronRight size={22} />
             </Link>
+
+            {/* Secondary CTA - restore modal (same base styles) */}
+            <button
+              type="button"
+              onClick={() => setRestoreDialogOpen(true)}
+              disabled={importLoading}
+              className={`${ctaBase} cursor-pointer bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 text-white shadow-2xl shadow-purple-500/40 hover:opacity-95`}
+            >
+              Restore Progres <FolderSync size={22} />
+            </button>
           </div>
+
+          {/* Hidden file input for direct restore */}
+          <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} className="hidden" aria-hidden />
+
+          {/* Restore confirmation dialog */}
+          <ConfirmDialog
+            isOpen={restoreDialogOpen}
+            title="Restore Progres"
+            description="Pilih file JSON progress yang telah Anda simpan sebelumnya untuk melanjutkan belajar dari mana Anda terakhir kali berhenti."
+            confirmText="Pilih File"
+            cancelText="Batal"
+            onConfirm={() => {
+              setRestoreDialogOpen(false);
+              fileInputRef.current?.click();
+            }}
+            onCancel={() => setRestoreDialogOpen(false)}
+            icon={<Upload size={24} />}
+            isLoading={importLoading}
+          />
         </div>
       </section>
 
@@ -109,7 +206,15 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, description, gradient, glow }: any) {
+interface FeatureCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  gradient: string;
+  glow: string;
+}
+
+function FeatureCard({ icon, title, description, gradient, glow }: FeatureCardProps) {
   return (
     <div className={`bg-card p-8 rounded-3xl border border-border hover:shadow-2xl ${glow} transition-all duration-500 transform hover:-translate-y-2 group relative overflow-hidden`}>
       {/* Subtle gradient background on hover */}

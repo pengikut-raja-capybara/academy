@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, type PayloadAction, current } from "@reduxjs/toolkit";
 import type { Module, ProgressMap, Theme } from "../../types";
 import { fetchModuleIndex, fetchModuleBySlug } from "../../services/cms";
 
@@ -11,6 +11,7 @@ interface LearningState {
   progress: ProgressMap;
   selectedLessonId: string;
   theme: Theme;
+  userName: string | null;
 }
 
 const STORAGE_KEY = "capybara_academy_state";
@@ -28,7 +29,7 @@ const loadState = (): Partial<LearningState> => {
     const serialized = localStorage.getItem(STORAGE_KEY);
     if (serialized === null) return {};
     return JSON.parse(serialized);
-  } catch (err) {
+  } catch {
     return {};
   }
 };
@@ -45,6 +46,7 @@ const initialState: LearningState = {
   progress: savedState.progress || {},
   selectedLessonId: savedState.selectedLessonId || "",
   theme: savedState.theme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+  userName: savedState.userName || null,
 };
 
 export const learningSlice = createSlice({
@@ -53,11 +55,11 @@ export const learningSlice = createSlice({
   reducers: {
     selectModule: (state, action: PayloadAction<string>) => {
       state.selectedModuleId = action.payload;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     selectLesson: (state, action: PayloadAction<string>) => {
       state.selectedLessonId = action.payload;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     updateProgress: (state, action: PayloadAction<{ videoId: string; second: number; duration: number }>) => {
       const { videoId, second, duration } = action.payload;
@@ -100,7 +102,7 @@ export const learningSlice = createSlice({
         state.progress[lesson.id].completed = true;
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     setVideoAvailability: (state, action: PayloadAction<{ lessonId: string; available: boolean }>) => {
       const { lessonId, available } = action.payload;
@@ -110,15 +112,34 @@ export const learningSlice = createSlice({
 
       state.progress[lessonId].videoUnavailable = !available;
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
+    },
+    importProgress: (state, action: PayloadAction<any>) => {
+      const payload = action.payload;
+      if (!payload || typeof payload !== "object") return;
+
+      // 1. Identify where the progress data is
+      let rawProgress = {};
+      if (payload.progress && typeof payload.progress === "object") {
+        rawProgress = payload.progress;
+        if (payload.userName) state.userName = payload.userName;
+      } else {
+        rawProgress = payload;
+      }
+
+      // 2. Clear current progress and apply new one (deep copy for safety)
+      state.progress = { ...rawProgress };
+      
+      // 3. Persist everything
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     toggleTheme: (state) => {
       state.theme = state.theme === "light" ? "dark" : "light";
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     setTheme: (state, action: PayloadAction<Theme>) => {
       state.theme = action.payload;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     toggleChecklistItem: (state, action: PayloadAction<{ lessonId: string; itemIndex: number }>) => {
       const { lessonId, itemIndex } = action.payload;
@@ -128,11 +149,10 @@ export const learningSlice = createSlice({
       state.progress[lessonId].checklist[itemIndex] = !state.progress[lessonId].checklist[itemIndex];
       
       // Re-check completion when checklist is toggled
-      let lesson;
-      for (const m of state.allModules) {
-        lesson = m.lessons?.find(l => l.id === lessonId || l.video === lessonId);
-        if (lesson) break;
-      }
+      const lesson = state.allModules
+        .flatMap((m) => m.lessons || [])
+        .find((l) => l.id === lessonId || l.video === lessonId);
+
       if (lesson) {
         const currentPos = state.progress[lessonId].lastWatchedSec;
         const duration = lesson.duration || state.progress[lessonId].duration || 1;
@@ -146,15 +166,14 @@ export const learningSlice = createSlice({
         state.progress[lessonId].completed = videoCompleted && checklistCompleted;
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     completeExercise: (state, action: PayloadAction<{ lessonId: string; answers?: Record<number, number>; score?: number }>) => {
       const { lessonId, answers, score } = action.payload;
-      let lesson;
-      for (const m of state.allModules) {
-        lesson = m.lessons?.find((l) => l.id === lessonId);
-        if (lesson) break;
-      }
+      const lesson = state.allModules
+        .flatMap((m) => m.lessons || [])
+        .find((l) => l.id === lessonId);
+
       if (!lesson) return;
 
       if (!state.progress[lessonId]) {
@@ -162,14 +181,14 @@ export const learningSlice = createSlice({
       }
 
       // Mark all checklist items as done
-      lesson.checklist?.forEach((_, index) => {
-        state.progress[lessonId].checklist[index] = true;
+      lesson.checklist?.forEach((_, idx) => {
+        state.progress[lessonId].checklist[idx] = true;
       });
 
       if (answers) state.progress[lessonId].quizAnswers = answers;
       if (score !== undefined) state.progress[lessonId].quizScore = score;
       state.progress[lessonId].completed = true;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     resetExercise: (state, action: PayloadAction<string>) => {
       const lessonId = action.payload;
@@ -179,7 +198,11 @@ export const learningSlice = createSlice({
         delete state.progress[lessonId].quizAnswers;
         delete state.progress[lessonId].quizScore;
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
+    },
+    setUserName: (state, action: PayloadAction<string>) => {
+      state.userName = action.payload;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
   },
   extraReducers: (builder) => {
@@ -227,5 +250,5 @@ export const learningSlice = createSlice({
   },
 });
 
-export const { selectModule, selectLesson, updateProgress, setVideoAvailability, toggleTheme, setTheme, toggleChecklistItem, completeExercise, resetExercise } = learningSlice.actions;
+export const { selectModule, selectLesson, updateProgress, setVideoAvailability, importProgress, toggleTheme, setTheme, toggleChecklistItem, completeExercise, resetExercise, setUserName } = learningSlice.actions;
 export default learningSlice.reducer;

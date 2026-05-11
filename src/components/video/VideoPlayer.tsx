@@ -392,7 +392,12 @@ export default function VideoPlayer({ lessonId, video }: Props) {
   return (
     <>
       {/* Backdrop overlay */}
-      {isWide && <div className="fixed inset-0 z-[9998] bg-black/90 animate-in fade-in duration-300" onClick={toggleWide} />}
+      {isWide && (
+        <div 
+          className="fixed inset-0 z-[9998] bg-black/95 backdrop-blur-md animate-in fade-in duration-300 h-screen w-screen" 
+          onClick={toggleWide} 
+        />
+      )}
 
       {/* Single container: inline by default, fixed overlay when cinema */}
       <div className={`transition-all duration-300 ease-in-out ${isWide ? "fixed inset-0 z-[9999] flex flex-col py-4 sm:py-8" : "max-w-4xl mx-auto"}`}>

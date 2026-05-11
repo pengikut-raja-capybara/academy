@@ -1,9 +1,16 @@
 import { Link, useLocation } from "react-router";
 import ThemeToggle from "./ThemeToggle";
 import { Sparkles, GitForkIcon, Menu } from "lucide-react";
+import { useAppSelector } from "../../store/hooks";
 
 export default function Header() {
   const location = useLocation();
+  const progress = useAppSelector((state) => state.learning.progress);
+  const userName = useAppSelector((state) => state.learning.userName);
+  
+  const hasAnyProgress = Object.values(progress).some(
+    (p) => p.completed || (p.lastWatchedSec ?? 0) > 0 || Object.keys(p.checklist || {}).length > 0
+  );
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -36,9 +43,16 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-1">
-            <NavLink to="/" active={isActive("/")}>
-              Beranda
-            </NavLink>
+            {!hasAnyProgress ? (
+              <NavLink to="/" active={isActive("/")}>
+                Beranda
+              </NavLink>
+            ) : null}
+            {hasAnyProgress ? (
+              <NavLink to="/dashboard" active={isActive("/dashboard")}>
+                Dashboard
+              </NavLink>
+            ) : null}
             <NavLink to="/roadmap" active={isActive("/roadmap")}>
               Roadmap
             </NavLink>
@@ -50,7 +64,7 @@ export default function Header() {
 
         <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 shrink-0">
           <Link
-            to="/learning"
+            to={!userName ? "/welcome" : "/learning"}
             className={`
               relative overflow-hidden px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-black transition-all duration-300
               flex items-center gap-2 shadow-lg active:scale-95 group whitespace-nowrap

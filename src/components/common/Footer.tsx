@@ -13,7 +13,6 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">PRC Academy</span>
 
-
             <span className="hidden sm:inline text-muted-foreground">&bull;</span>
             <span className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider font-bold">&copy; {new Date().getFullYear()} Pengikut Raja Capybara</span>
           </div>
@@ -22,10 +21,14 @@ export default function Footer() {
             <span>&bull;</span>
             <Link to="/about" className="hover:text-primary flex items-center gap-1 transition-colors">
               <Info size={10} className="sm:w-3 sm:h-3" />
-              <span className="hidden sm:inline">Tentang Platform</span>
+              <span className="hidden sm:inline">Tentang</span>
+            </Link>
+            <Link to="/dashboard" className="hover:text-primary flex items-center gap-1 transition-colors">
+              <ChartNoAxesColumnIncreasing size={10} className="sm:w-3 sm:h-3" />
+              <span className="hidden sm:inline">Dashboard</span>
             </Link>
             <Link to="/roadmap" className="hover:text-primary flex items-center gap-1 transition-colors">
-              <ChartNoAxesColumnIncreasing size={10} className="sm:w-3 sm:h-3" />
+              <Zap size={10} className="sm:w-3 sm:h-3" />
               <span className="hidden sm:inline">Roadmap</span>
             </Link>
             <Link to="/privacy" className="hover:text-primary transition-colors flex items-center gap-1">
@@ -58,7 +61,6 @@ export default function Footer() {
                 <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">Tentang Platform</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Kredit dan ekosistem di balik layar.</p>
               </div>
-
 
               <button onClick={() => setShowCredits(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors">
                 <X size={16} />

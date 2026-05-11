@@ -149,12 +149,12 @@ export class CmsFetcher {
     this.basePath = basePath;
   }
 
-  async fetchIndex(source: CmsSourceConfig = this.defaultSource): Promise<any[]> {
+  async fetchIndex(source: CmsSourceConfig = this.defaultSource): Promise<Module[]> {
     const latestRef = await getLatestContentRef(source);
     try {
-      const index = await this.fetchFile<{ modules: any[] }>('content-index.json', source, latestRef);
+      const index = await this.fetchFile<{ modules: Module[] }>('content-index.json', source, latestRef);
       return index?.modules || [];
-    } catch (error) {
+    } catch {
       console.warn('Failed to fetch index, falling back to empty list');
       return [];
     }
@@ -172,7 +172,7 @@ export class CmsFetcher {
           index.modules.map((m) => this.fetchFile<T>(m.path, source, latestRef))
         );
       }
-    } catch (error) {
+    } catch {
       console.warn('content-index.json not found or invalid, falling back to folder scan');
     }
 
@@ -202,7 +202,7 @@ export class CmsFetcher {
     try {
       const rawText = await fetchText(buildJsDelivrRawUrl(path, source, targetRef));
       return JSON.parse(rawText) as T;
-    } catch (error) {
+    } catch {
       const rawText = await fetchText(buildGitHubRawUrl(path, source, targetRef));
       return JSON.parse(rawText) as T;
     }
@@ -211,7 +211,7 @@ export class CmsFetcher {
 
 export const academyCms = new CmsFetcher(ACADEMY_CMS_SOURCE, 'content');
 
-export async function fetchModuleIndex(): Promise<any[]> {
+export async function fetchModuleIndex(): Promise<Module[]> {
   return academyCms.fetchIndex();
 }
 

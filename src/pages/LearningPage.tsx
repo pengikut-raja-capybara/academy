@@ -1,5 +1,5 @@
 import { useMemo, useCallback, memo, useState, useEffect, useRef } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import VideoPlayer from "../components/video/VideoPlayer";
 import LessonSidebar from "../components/video/LessonSidebar";
@@ -518,10 +518,19 @@ const ModuleOverviewScreen = memo(function ModuleOverviewScreen({
 
 // ─── Main Page ──────────────────────────────────────────
 
+
 export default function LearningPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { allModules, progress, selectedLessonId, selectedModuleId, detailStatus } = useAppSelector((state) => state.learning);
+  const { allModules, progress, selectedLessonId, selectedModuleId, detailStatus, userName } = useAppSelector((state) => state.learning);
+
+  // Redirect to welcome if no username
+  useEffect(() => {
+    if (!userName) {
+      navigate(`/welcome?redirect=${encodeURIComponent(`/learning/${id}`)}`, { replace: true });
+    }
+  }, [userName, navigate, id]);
 
   const modules = useMemo(() => {
     return allModules.find((m) => m.slug === id || m.id === id);

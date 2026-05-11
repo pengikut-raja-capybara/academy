@@ -8,9 +8,9 @@ export default function RoadmapPage() {
       icon: <CheckCircle2 className="text-green-500" />,
       color: "border-green-500/20",
       items: [
-        { title: "Sistem Pembelajaran Inti", desc: "Halaman Belajar interaktif dengan dukungan modul video, teks, dan evaluasi (kuis)." },
-        { title: "Katalog Modul", desc: "Halaman daftar modul untuk kurasi materi edukasi terbuka." },
-        { title: "Transparansi & Legalitas", desc: "Halaman Kebijakan Privasi dan Informasi Platform." },
+        { title: "Sistem Pembelajaran Inti", desc: "Halaman Belajar interaktif dengan dukungan modul video, teks, dan evaluasi (kuis).", completed: true },
+        { title: "Katalog Modul", desc: "Halaman daftar modul untuk kurasi materi edukasi terbuka.", completed: true },
+        { title: "Transparansi & Legalitas", desc: "Halaman Kebijakan Privasi dan Informasi Platform.", completed: true },
       ],
     },
     {
@@ -20,9 +20,9 @@ export default function RoadmapPage() {
       color: "border-blue-500/30",
       isCurrent: true,
       items: [
-        { title: "Dashboard Personal", desc: "Ruang kendali pribadi untuk melihat statistik belajar, riwayat penyelesaian, dan hall of fame secara visual." },
-        { title: "Backup & Pindah Device", desc: "Mau lanjut belajar di laptop lain? Cukup ekspor progresmu ke JSON dan impor di perangkat baru. Datamu adalah milikmu sepenuhnya." },
-        { title: "10+ Modul Belajar", desc: "Memperluas katalog materi dari berbagai sumber open-source terbaik." },
+        { title: "Dashboard Personal", desc: "Ruang kendali pribadi untuk melihat statistik belajar, riwayat penyelesaian, dan hall of fame secara visual.", completed: true },
+        { title: "Backup & Pindah Device", desc: "Mau lanjut belajar di laptop lain? Cukup ekspor progresmu ke JSON dan impor di perangkat baru. Datamu adalah milikmu sepenuhnya.", completed: true },
+        { title: "10+ Modul Belajar", desc: "Memperluas katalog materi dari berbagai sumber open-source terbaik.", completed: false },
       ],
     },
     {
@@ -30,7 +30,7 @@ export default function RoadmapPage() {
       status: "Jangka Menengah",
       icon: <Flame className="text-orange-500" />,
       color: "border-orange-500/20",
-      items: [{ title: "Materi Original (PRCA Originals)", desc: "Perilisan modul eksklusif buatan internal Pengikut Raja Capybara Academy, berfokus pada topik spesialisasi dan studi kasus nyata." }],
+      items: [{ title: "Materi Original (PRCA Originals)", desc: "Perilisan modul eksklusif buatan internal Pengikut Raja Capybara Academy, berfokus pada topik spesialisasi dan studi kasus nyata.", completed: false }],
     },
     {
       title: "Fase 4: Desentralisasi Pembelajaran",
@@ -38,9 +38,9 @@ export default function RoadmapPage() {
       icon: <Globe className="text-purple-500" />,
       color: "border-purple-500/20",
       items: [
-        { title: "Custom Modul", desc: "Fitur yang memungkinkan pengguna meracik kurikulum mereka sendiri menggunakan antarmuka pembuat modul statis." },
-        { title: "Ekspor/Impor Custom Modul", desc: "Bagikan modul racikanmu ke teman atau komunitas lain hanya dengan bertukar satu file JSON." },
-        { title: "Self Cloud Integration", desc: "Sinkronisasi progres dan modul kustom langsung ke penyimpanan awan pribadi pengguna (G-Drive, Nextcloud, dll)." },
+        { title: "Custom Modul", desc: "Fitur yang memungkinkan pengguna meracik kurikulum mereka sendiri menggunakan antarmuka pembuat modul statis.", completed: false },
+        { title: "Ekspor/Impor Custom Modul", desc: "Bagikan modul racikanmu ke teman atau komunitas lain hanya dengan bertukar satu file JSON.", completed: false },
+        { title: "Self Cloud Integration", desc: "Sinkronisasi progres dan modul kustom langsung ke penyimpanan awan pribadi pengguna (G-Drive, Nextcloud, dll).", completed: false },
       ],
     },
   ];
@@ -100,10 +100,15 @@ export default function RoadmapPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {phase.items.map((item, j) => (
-                    <div key={j} className="space-y-3 p-4 rounded-2xl bg-muted/30 border border-border/40 hover:border-primary/30 transition-colors group">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                        <ArrowRight size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                    <div key={j} className={`space-y-3 p-4 rounded-2xl border transition-all duration-300 group relative overflow-hidden ${item.completed ? "bg-green-500/5 border-green-500/20" : "bg-muted/30 border-border/40 hover:border-primary/30"}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`mt-0.5 shrink-0 w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${item.completed ? "bg-green-500 border-green-500 text-white" : "border-muted-foreground/30 text-transparent"}`}>
+                            <CheckCircle2 size={10} />
+                          </div>
+                          <h3 className={`font-bold text-sm transition-colors ${item.completed ? "text-foreground/90" : "text-foreground group-hover:text-primary"}`}>{item.title}</h3>
+                        </div>
+                        {!item.completed && <ArrowRight size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all mt-1" />}
                       </div>
                       <p className="text-[12px] text-muted-foreground font-medium leading-relaxed">{item.desc}</p>
                     </div>
