@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router";
+import { useLocation, Routes, Route, Navigate } from "react-router";
 
 import { useAppDispatch } from "./store/hooks";
 import { fetchModules } from "./features/learning/learningSlice";
@@ -16,6 +16,7 @@ import RoadmapPage from "./pages/RoadmapPage";
 
 function App() {
   const dispatch = useAppDispatch();
+  const location = useLocation();
 
   useEffect(() => {
     dispatch(fetchModules());
@@ -26,7 +27,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/learning" element={<ModulesPage />} />
-        <Route path="/learning/:id" element={<LearningPage />} />
+        <Route path="/learning/:id" element={<LearningPage key={location.pathname} />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/roadmap" element={<RoadmapPage />} />

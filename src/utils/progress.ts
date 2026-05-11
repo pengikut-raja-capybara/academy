@@ -20,6 +20,15 @@ export function calculateLessonProgress(lesson: Lesson, progress: ProgressMap): 
     };
   }
 
+  if (lessonProgress?.completed) {
+    return {
+      videoPct: 100,
+      checklistPct: 100,
+      isCompleted: true,
+      lessonPct: 100,
+    };
+  }
+
   const currentPos = lessonProgress?.lastWatchedSec ?? 0;
   const duration = lessonProgress?.duration ?? lesson.duration ?? 1;
   const rawVideoPct = Math.min(100, Math.round((currentPos / duration) * 100));

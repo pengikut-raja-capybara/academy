@@ -71,6 +71,7 @@ export const learningSlice = createSlice({
       if (!state.progress[lesson.id]) {
         state.progress[lesson.id] = { seen: {}, lastWatchedSec: 0, completed: false, checklist: {} };
       }
+      state.progress[lesson.id].videoUnavailable = false;
       state.progress[lesson.id].seen[second] = true;
       state.progress[lesson.id].lastWatchedSec = second;
       state.progress[lesson.id].duration = duration;
@@ -98,6 +99,16 @@ export const learningSlice = createSlice({
       if (videoCompleted && checklistCompleted) {
         state.progress[lesson.id].completed = true;
       }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    },
+    setVideoAvailability: (state, action: PayloadAction<{ lessonId: string; available: boolean }>) => {
+      const { lessonId, available } = action.payload;
+      if (!state.progress[lessonId]) {
+        state.progress[lessonId] = { seen: {}, lastWatchedSec: 0, completed: false, checklist: {} };
+      }
+
+      state.progress[lessonId].videoUnavailable = !available;
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
@@ -216,5 +227,5 @@ export const learningSlice = createSlice({
   },
 });
 
-export const { selectModule, selectLesson, updateProgress, toggleTheme, setTheme, toggleChecklistItem, completeExercise, resetExercise } = learningSlice.actions;
+export const { selectModule, selectLesson, updateProgress, setVideoAvailability, toggleTheme, setTheme, toggleChecklistItem, completeExercise, resetExercise } = learningSlice.actions;
 export default learningSlice.reducer;

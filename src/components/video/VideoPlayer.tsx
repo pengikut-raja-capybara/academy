@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { updateProgress } from "../../features/learning/learningSlice";
+import { setVideoAvailability, updateProgress } from "../../features/learning/learningSlice";
 import { Play, Pause, Maximize2, Minimize2 } from "lucide-react";
 
 type Props = {
@@ -10,18 +10,47 @@ type Props = {
   description?: string;
 };
 
+type YouTubePlayerStateChangeEvent = {
+  data: number;
+};
+
+type YouTubePlayer = {
+  destroy: () => void;
+  getDuration: () => number;
+  getCurrentTime: () => number;
+  playVideo: () => void;
+  pauseVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+};
+
+type YouTubePlayerOptions = {
+  height: string;
+  width: string;
+  videoId?: string;
+  playerVars: Record<string, number>;
+  events: {
+    onReady: () => void;
+    onStateChange: (event: YouTubePlayerStateChangeEvent) => void;
+    onError: () => void;
+  };
+};
+
 declare global {
   interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: any;
+    YT?: {
+      Player: new (element: HTMLElement, options: YouTubePlayerOptions) => YouTubePlayer;
+    };
+    onYouTubeIframeAPIReady?: (() => void) | null;
   }
 }
 
 export default function VideoPlayer({ lessonId, video }: Props) {
   const [isWide, setIsWide] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const readyTimeoutRef = useRef<number | null>(null);
+  const apiPollRef = useRef<number | null>(null);
   const dispatch = useAppDispatch();
   const progress = useAppSelector((state) => state.learning.progress[lessonId]);
   const [isReady, setIsReady] = useState(false);
@@ -29,12 +58,63 @@ export default function VideoPlayer({ lessonId, video }: Props) {
   const [currentSeconds, setCurrentSeconds] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [hoverPct, setHoverPct] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const progressRef = useRef(progress);
+  const isReadyRef = useRef(isReady);
+  const loadErrorRef = useRef(loadError);
+
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
+
+  useEffect(() => {
+    isReadyRef.current = isReady;
+  }, [isReady]);
+
+  useEffect(() => {
+    loadErrorRef.current = loadError;
+  }, [loadError]);
+
+  const stopSampling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  const clearReadyTimeout = useCallback(() => {
+    if (readyTimeoutRef.current !== null) {
+      clearTimeout(readyTimeoutRef.current);
+      readyTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearApiPoll = useCallback(() => {
+    if (apiPollRef.current !== null) {
+      clearInterval(apiPollRef.current);
+      apiPollRef.current = null;
+    }
+  }, []);
+
+  const markUnavailable = useCallback(() => {
+    setLoadError(true);
+    setIsReady(false);
+    setIsPlaying(false);
+    setTotalDuration(0);
+    dispatch(setVideoAvailability({ lessonId, available: false }));
+    stopSampling();
+    clearApiPoll();
+    playerRef.current?.destroy?.();
+  }, [clearApiPoll, dispatch, lessonId, stopSampling]);
 
   useEffect(() => {
     let mounted = true;
 
-    const createPlayer = () => {
-      if (!mounted || !containerRef.current || !window.YT || !window.YT.Player) return;
+    const finalizePlayerCreation = () => {
+      if (!mounted || !containerRef.current || !window.YT?.Player) return false;
+
+      clearReadyTimeout();
+      clearApiPoll();
 
       // YouTube API will take care of the ref
 
@@ -56,21 +136,28 @@ export default function VideoPlayer({ lessonId, video }: Props) {
         events: {
           onReady: () => {
             if (mounted) {
+              clearReadyTimeout();
+              clearApiPoll();
               setIsReady(true);
-              const duration = Math.ceil(playerRef.current.getDuration());
+              setLoadError(false);
+              dispatch(setVideoAvailability({ lessonId, available: true }));
+              const player = playerRef.current;
+              if (!player) return;
+
+              const duration = Math.ceil(player.getDuration());
               setTotalDuration(duration);
-              if (mounted && playerRef.current && progress?.lastWatchedSec) {
+              if (mounted && progressRef.current?.lastWatchedSec) {
                 // Some browsers require play call before seek/pause works reliably
-                playerRef.current.playVideo();
-                playerRef.current.seekTo(progress.lastWatchedSec, true);
-                setCurrentSeconds(progress.lastWatchedSec);
+                player.playVideo();
+                player.seekTo(progressRef.current.lastWatchedSec, true);
+                setCurrentSeconds(progressRef.current.lastWatchedSec);
                 setTimeout(() => {
-                  playerRef.current.pauseVideo();
+                  player.pauseVideo();
                 }, 300);
               }
             }
           },
-          onStateChange: (e: any) => {
+          onStateChange: (e: YouTubePlayerStateChangeEvent) => {
             if (e.data === 1) {
               setIsPlaying(true);
               startSampling();
@@ -80,26 +167,60 @@ export default function VideoPlayer({ lessonId, video }: Props) {
             }
           },
           onError: () => {
+            if (!mounted) return;
+            clearReadyTimeout();
+            clearApiPoll();
+            markUnavailable();
             console.error("YouTube Player Error");
           },
         },
       });
+
+      readyTimeoutRef.current = window.setTimeout(() => {
+        if (!mounted || isReadyRef.current || loadErrorRef.current) return;
+        markUnavailable();
+      }, 15000);
+
+      return true;
     };
 
-    if (!window.YT) {
+    const tryCreatePlayer = () => {
+      if (finalizePlayerCreation()) return;
+
+      clearApiPoll();
+      apiPollRef.current = window.setInterval(() => {
+        if (!mounted) {
+          clearApiPoll();
+          return;
+        }
+
+        if (finalizePlayerCreation()) {
+          clearApiPoll();
+        }
+      }, 200);
+    };
+
+    if (!window.YT?.Player) {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
+      tag.onerror = () => {
+        if (!mounted) return;
+        clearReadyTimeout();
+        clearApiPoll();
+        markUnavailable();
+        console.error("Failed to load YouTube IFrame API");
+      };
       const firstScriptTag = document.getElementsByTagName("script")[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
       const prevReady = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => {
         if (prevReady) prevReady();
-        createPlayer();
+        tryCreatePlayer();
       };
     } else {
       // Small timeout to ensure DOM is ready after remount
-      const timeout = setTimeout(createPlayer, 50);
+      const timeout = window.setTimeout(tryCreatePlayer, 50);
       return () => clearTimeout(timeout);
     }
 
@@ -122,19 +243,14 @@ export default function VideoPlayer({ lessonId, video }: Props) {
       }, 1000); // Sample every 1 second for smoother UI
     }
 
-    function stopSampling() {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
     return () => {
       mounted = false;
+      clearReadyTimeout();
+      clearApiPoll();
       stopSampling();
       if (playerRef.current?.destroy) playerRef.current.destroy();
     };
-  }, [video, dispatch]);
+  }, [video, dispatch, lessonId, markUnavailable, clearApiPoll, clearReadyTimeout, stopSampling]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!playerRef.current || !totalDuration) return;
@@ -191,10 +307,8 @@ export default function VideoPlayer({ lessonId, video }: Props) {
   };
 
   const playbackPct = totalDuration > 0 ? (currentSeconds / totalDuration) * 100 : 0;
-
-  // Watch progress
-  const minPct = totalDuration;
-  const isVideoCompleted = playbackPct >= minPct;
+  const minWatchPct = 90;
+  const isVideoCompleted = isReady && !loadError && totalDuration > 0 && playbackPct >= minWatchPct;
   const displayPlaybackPct = Math.round(playbackPct);
 
   /* ─── Shared Controls Bar ──────────────────────── */
@@ -295,9 +409,18 @@ export default function VideoPlayer({ lessonId, video }: Props) {
         >
           <div className={`relative bg-black ${isWide ? "w-full h-full" : "aspect-video"}`}>
             <div ref={containerRef} className="w-full h-full scale-[1.01]" />
-            {!isReady && (
+            {!isReady && !loadError && (
               <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse z-10">
-                <span className="text-muted-foreground font-medium">Memuat Video...</span>
+                <span className="text-sm text-slate-300">Memuat Video...</span>
+              </div>
+            )}
+            {loadError && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm px-6 text-center text-white border border-white/10 shadow-2xl shadow-black/40">
+                <div className="max-w-sm space-y-2">
+                  <p className="font-black text-white">Tidak dapat mengakses video</p>
+                  <p className="text-sm text-slate-300">Cek jaringan, firewall, atau pembatasan akses ke YouTube.</p>
+                  <p className="text-sm text-slate-300">Progress video tidak akan ditandai tuntas sampai video berhasil dimuat.</p>
+                </div>
               </div>
             )}
           </div>

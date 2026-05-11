@@ -36,6 +36,7 @@ export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelec
           <ul className="space-y-1">
             {modules.lessons?.map((lesson: Lesson, index: number) => {
               const { isCompleted, lessonPct: pct } = calculateLessonProgress(lesson, progress);
+              const isFullyProgressed = pct >= 100;
 
 
               const isSelected = !isOverviewSelected && selectedLessonId === lesson.id;
@@ -102,11 +103,11 @@ export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelec
                           <div className="flex items-center gap-3 mt-2">
                             <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden border border-border/10">
                               <div
-                                className={`h-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)] ${isCompleted ? "bg-green-500" : "bg-blue-500"}`}
+                                className={`h-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)] ${isCompleted || isFullyProgressed ? "bg-green-500" : "bg-blue-500"}`}
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
-                            <span className={`text-[10px] font-black ${isCompleted ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400"}`}>{pct}%</span>
+                            <span className={`text-[10px] font-black ${isCompleted || isFullyProgressed ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400"}`}>{pct}%</span>
                           </div>
                         )}
                       </div>
@@ -117,39 +118,48 @@ export default function LessonSidebar({ modules, onLessonSelect, onOverviewSelec
             })}
 
             {/* Overview / Completion Item */}
-            {allLessonsCompleted && (
-              <li className="relative mt-2">
-                <div className="h-px bg-slate-200 dark:bg-slate-800 mb-2" />
-                <button
-                  onClick={() => onOverviewSelect?.()}
-                  className={`w-full text-left transition-all relative p-3 rounded-xl border ${
-                      isOverviewSelected ? "bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-purple-500/30 shadow-sm" : "bg-card/70 border-border/40 hover:bg-muted/50"
-                  }`}
-                >
-                  <div className="flex gap-3 items-center">
-                    <div className={`flex-shrink-0 ${isOverviewSelected ? "text-purple-500" : "text-muted-foreground"}`}>{hasSubmission ? <Flag size={18} /> : <CheckCircle2 size={18} />}</div>
-                    <div className="flex-1 min-w-0">
-                      <span
-                        className={`block font-bold text-[11px] leading-tight mb-1 truncate ${isOverviewSelected ? "bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" : ""}`}
-                      >
-                        {hasSubmission ? "Tugas Akhir" : "Selesai"}
-                      </span>
-                      <div className="flex items-center gap-3 mt-2">
-                        <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden border border-border/10">
-                          <div
-                            className={`h-full transition-all duration-700 ease-out bg-gradient-to-r from-purple-500 to-pink-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]`}
-                            style={{ width: `100%` }}
-                          />
-                        </div>
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${isOverviewSelected ? "text-purple-500" : "text-muted-foreground"}`}>
-                          {hasSubmission ? "FINAL" : "100%"}
-                        </span>
+            <li className="relative mt-2">
+              <div className="h-px bg-slate-200 dark:bg-slate-800 mb-2" />
+              <button
+                onClick={() => {
+                  if (allLessonsCompleted) {
+                    onOverviewSelect?.();
+                  }
+                }}
+                disabled={!allLessonsCompleted}
+                className={`w-full text-left transition-all relative p-3 rounded-xl border ${
+                  allLessonsCompleted
+                    ? isOverviewSelected
+                      ? "bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-purple-500/30 shadow-sm"
+                      : "bg-card/70 border-border/40 hover:bg-muted/50"
+                    : "bg-card/50 border-border/30 opacity-60 cursor-not-allowed"
+                }`}
+              >
+                <div className="flex gap-3 items-center">
+                  <div className={`flex-shrink-0 ${allLessonsCompleted && isOverviewSelected ? "text-purple-500" : "text-muted-foreground"}`}>
+                    {allLessonsCompleted ? (hasSubmission ? <Flag size={18} /> : <CheckCircle2 size={18} />) : <Lock size={18} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span
+                      className={`block font-bold text-[11px] leading-tight mb-1 truncate ${allLessonsCompleted && isOverviewSelected ? "bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" : ""}`}
+                    >
+                      Selesai
+                    </span>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden border border-border/10">
+                        <div
+                          className={`h-full transition-all duration-700 ease-out ${allLessonsCompleted ? "bg-gradient-to-r from-purple-500 to-pink-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" : "bg-muted-foreground/30"}`}
+                          style={{ width: allLessonsCompleted ? `100%` : `0%` }}
+                        />
                       </div>
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${allLessonsCompleted && isOverviewSelected ? "text-purple-500" : "text-muted-foreground"}`}>
+                        {allLessonsCompleted ? (hasSubmission ? "FINAL" : "100%") : "LOCKED"}
+                      </span>
                     </div>
                   </div>
-                </button>
-              </li>
-            )}
+                </div>
+              </button>
+            </li>
           </ul>
         </div>
       </div>

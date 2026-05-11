@@ -51,6 +51,7 @@ export type ProgressMap = Record<
     lastWatchedSec: number;
     duration?: number;
     completed: boolean;
+    videoUnavailable?: boolean;
     checklist: Record<string, boolean>; // taskIndex/id -> completed
     quizAnswers?: Record<number, number>; // questionIndex -> selectedOptionIndex
     quizScore?: number;

@@ -27,6 +27,25 @@ import { resolveAssetUrl } from "../services/cms";
 import { toSafeHtml } from "../utils/markdown";
 import { calculateLessonProgress } from "../utils/progress";
 
+const VIEW_STATE_KEY = "capybara_academy_learning_view_state";
+
+function loadViewState() {
+  try {
+    const serialized = localStorage.getItem(VIEW_STATE_KEY);
+    return serialized ? (JSON.parse(serialized) as Record<string, { mode: "intro" | "overview" | "lesson"; lessonId?: string }>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveViewState(state: Record<string, { mode: "intro" | "overview" | "lesson"; lessonId?: string }>) {
+  try {
+    localStorage.setItem(VIEW_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 const SidebarDrawer = memo(function SidebarDrawer({
   isOpen,
   onClose,
@@ -278,12 +297,14 @@ const NavigationFooter = memo(function NavigationFooter({
   currentIdx,
   totalLessons,
   isCompleted,
+  isOverview,
   onPrev,
   onNext,
 }: {
   currentIdx: number;
   totalLessons: number;
   isCompleted: boolean;
+  isOverview: boolean;
   onPrev: () => void;
   onNext: () => void;
 }) {
@@ -303,19 +324,19 @@ const NavigationFooter = memo(function NavigationFooter({
         </button>
         <div className="h-5 w-px bg-border" />
         <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
-          {currentIdx >= totalLessons ? "Tugas Akhir" : `${currentIdx + 1} / ${totalLessons}`}
+          {currentIdx >= totalLessons ? "Ringkasan" : `${currentIdx + 1} / ${totalLessons}`}
         </span>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        {!isCompleted && !isLast && <span className="text-[9px] sm:text-[10px] text-amber-500 font-black uppercase tracking-widest hidden sm:block">Selesaikan dulu</span>}
+        {!isOverview && !isCompleted && !isLast && <span className="text-[9px] sm:text-[10px] text-amber-500 font-black uppercase tracking-widest hidden sm:block">Selesaikan dulu</span>}
         <button
-          disabled={isLast || !isCompleted}
+          disabled={isOverview || !isCompleted}
           onClick={onNext}
           className="h-9 sm:h-10 px-3 sm:px-5 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 text-white rounded-xl font-bold text-xs sm:text-sm hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2"
         >
-          <span className="hidden sm:inline">Materi Selanjutnya</span>
-          <span className="sm:hidden">Selanjutnya</span>
+          <span className="hidden sm:inline">{isOverview ? "Selesai" : "Materi Selanjutnya"}</span>
+          <span className="sm:hidden">{isOverview ? "Selesai" : "Selanjutnya"}</span>
           <ChevronRight size={16} />
         </button>
       </div>
@@ -510,8 +531,25 @@ export default function LearningPage() {
   const [viewOverride, setViewOverride] = useState<{
     moduleId: string;
     mode: "intro" | "overview" | "lesson";
-  } | null>(null);
+    lessonId?: string;
+  } | null>(() => {
+    if (!id) return null;
+    const savedState = loadViewState();
+    return savedState[id] ? { moduleId: id, ...savedState[id] } : null;
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const savedState = loadViewState();
+    if (viewOverride && viewOverride.moduleId === id) {
+      savedState[id] = { mode: viewOverride.mode, lessonId: viewOverride.lessonId };
+    } else {
+      delete savedState[id];
+    }
+    saveViewState(savedState);
+  }, [id, viewOverride]);
 
   // 1. Initial fetch for detail
   useEffect(() => {
@@ -545,10 +583,7 @@ export default function LearningPage() {
       return lessonProgress && (lessonProgress.completed || (lessonProgress.lastWatchedSec ?? 0) > 0 || Object.keys(lessonProgress.checklist || {}).length > 0);
     });
 
-    const allLessonsCompleted = allLessons.every((lesson) => {
-      const lessonProgress = progress[lesson.id] ?? (lesson.video ? progress[lesson.video] : undefined);
-      return !!lessonProgress?.completed || (lesson.type !== "exercise" && !lesson.video && (lesson.checklist?.length ?? 0) === 0);
-    });
+    const allLessonsCompleted = allLessons.every((lesson) => calculateLessonProgress(lesson, progress).isCompleted);
 
     if (allLessonsCompleted) return "overview";
     if (!hasAnyProgress) return "intro";
@@ -577,12 +612,7 @@ export default function LearningPage() {
   const lessonProgress = progress[selectedLesson.id] ?? (selectedLesson.video ? progress[selectedLesson.video] : undefined);
 
   const allLessonsCompleted = useMemo(
-    () =>
-      allLessons.length > 0 &&
-      allLessons.every((l) => {
-        const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
-        return !!lp?.completed || (l.type !== "exercise" && !l.video && (l.checklist?.length ?? 0) === 0);
-      }),
+    () => allLessons.length > 0 && allLessons.every((lesson) => calculateLessonProgress(lesson, progress).isCompleted),
     [allLessons, progress],
   );
 
@@ -613,39 +643,40 @@ export default function LearningPage() {
   }, []);
 
   const handleOverviewSelect = useCallback(() => {
-    if (id) setViewOverride({ moduleId: id, mode: "overview" });
+    if (id) setViewOverride({ moduleId: id, mode: "overview", lessonId: selectedLesson.id });
     setSidebarOpen(false);
-  }, [id]);
+  }, [id, selectedLesson.id]);
 
   const handleStartLearning = useCallback(() => {
     // Cari pelajaran pertama yang belum selesai (resume ke posisi terakhir)
     const firstIncomplete = allLessons.find((l) => {
-      const lp = progress[l.id] ?? (l.video ? progress[l.video] : undefined);
-      return !lp?.completed;
+      return !calculateLessonProgress(l, progress).isCompleted;
     });
     const target = firstIncomplete || allLessons[0];
     if (target) dispatch(selectLesson(target.id));
-    if (id) setViewOverride({ moduleId: id, mode: "lesson" });
+    if (id) setViewOverride({ moduleId: id, mode: "lesson", lessonId: target?.id });
   }, [allLessons, progress, dispatch, id]);
 
   const handlePrev = useCallback(() => {
     if (effectiveViewMode === "overview") {
-      if (id) setViewOverride({ moduleId: id, mode: "lesson" });
+      const anchorLessonId = viewOverride?.lessonId ?? selectedLesson.id;
+      if (anchorLessonId) dispatch(selectLesson(anchorLessonId));
+      if (id) setViewOverride({ moduleId: id, mode: "lesson", lessonId: anchorLessonId });
     } else if (currentIdx > 0) {
       dispatch(selectLesson(allLessons[currentIdx - 1].id));
     }
     setSidebarOpen(false);
-  }, [effectiveViewMode, currentIdx, allLessons, dispatch, id]);
+  }, [effectiveViewMode, currentIdx, allLessons, dispatch, id, selectedLesson.id, viewOverride]);
 
   const handleNext = useCallback(() => {
     const isLastLesson = currentIdx === allLessons.length - 1;
     if (effectiveViewMode !== "overview" && isLastLesson && isCompleted && allLessonsCompleted) {
-      if (id) setViewOverride({ moduleId: id, mode: "overview" });
+      if (id) setViewOverride({ moduleId: id, mode: "overview", lessonId: selectedLesson.id });
     } else if (effectiveViewMode !== "overview" && currentIdx < allLessons.length - 1) {
       dispatch(selectLesson(allLessons[currentIdx + 1].id));
     }
     setSidebarOpen(false);
-  }, [effectiveViewMode, currentIdx, allLessons, isCompleted, allLessonsCompleted, dispatch, id]);
+  }, [effectiveViewMode, currentIdx, allLessons, isCompleted, allLessonsCompleted, dispatch, id, selectedLesson.id]);
 
   // Scroll to top when lesson or view changes
   useEffect(() => {
@@ -751,6 +782,7 @@ export default function LearningPage() {
             currentIdx={effectiveViewMode === "overview" ? allLessons.length : currentIdx}
             totalLessons={allLessons.length}
             isCompleted={effectiveViewMode === "overview" ? true : showNextToOverview ? true : isCompleted}
+            isOverview={effectiveViewMode === "overview"}
             onPrev={handlePrev}
             onNext={handleNext}
           />
