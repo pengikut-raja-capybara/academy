@@ -1,5 +1,33 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
+// Module-level flag to prevent inserting the YouTube API script more than once per session
+let ytScriptLoading = false;
+let ytReadyCallbacks: (() => void)[] = [];
+
+function ensureYouTubeApiLoaded(onReady: () => void) {
+  if (window.YT?.Player) {
+    onReady();
+    return;
+  }
+
+  ytReadyCallbacks.push(onReady);
+
+  if (ytScriptLoading) return; // Script already being loaded, just queue the callback
+  ytScriptLoading = true;
+
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  const firstScriptTag = document.getElementsByTagName("script")[0];
+  firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+  const prev = window.onYouTubeIframeAPIReady;
+  window.onYouTubeIframeAPIReady = () => {
+    if (prev) prev();
+    const callbacks = ytReadyCallbacks.splice(0);
+    callbacks.forEach((cb) => cb());
+  };
+}
+
 type YouTubePlayerStateChangeEvent = {
   data: number;
 };
@@ -96,7 +124,7 @@ export function useYouTubePlayer({ videoId, onReady, onStateChange, onError }: U
         width: "100%",
         playerVars: {
           autoplay: 0,
-          controls: 1,
+          controls: 0,
           rel: 0,
           modestbranding: 0,
           disablekb: 0,
@@ -151,26 +179,9 @@ export function useYouTubePlayer({ videoId, onReady, onStateChange, onError }: U
       }, 200);
     };
 
-    if (!window.YT?.Player) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      tag.onerror = () => {
-        if (!mounted) return;
-        clearReadyTimeout();
-        clearApiPoll();
-        markUnavailable();
-      };
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-
-      const prevReady = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        if (prevReady) prevReady();
-        tryCreatePlayer();
-      };
-    } else {
-      tryCreatePlayer();
-    }
+    ensureYouTubeApiLoaded(() => {
+      if (mounted) tryCreatePlayer();
+    });
 
     return () => {
       mounted = false;

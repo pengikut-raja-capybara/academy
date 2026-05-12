@@ -14,14 +14,12 @@ function applyGitHubPagesRedirect() {
 
   if (!redirectPath) return;
 
-  let normalizedTarget = redirectPath.startsWith("/") ? redirectPath : `/${redirectPath}`;
+  // redirectPath is the original path without the basePath prefix
+  // e.g., redirectPath = "/dashboard" and basePath = "/academy"
+  // We want to navigate to "/academy/dashboard"
+  const targetPath = `${basePath}/${redirectPath}`.replace(/\/+/g, "/");
 
-  if (basePath && normalizedTarget.startsWith(`${basePath}/`)) {
-    normalizedTarget = normalizedTarget.slice(basePath.length);
-  }
-
-  const normalizedUrl = `${basePath}${normalizedTarget}`.replace(/\/+/g, "/");
-  window.history.replaceState(null, "", normalizedUrl);
+  window.history.replaceState(null, "", targetPath);
 }
 
 applyGitHubPagesRedirect();
