@@ -1,8 +1,8 @@
 import { CheckCircle2, PlayCircle, FileText, Lock, HelpCircle, Flag } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { selectLesson } from "../../features/learning/learningSlice";
-import type { Module, Lesson } from "../../types";
-import { calculateLessonProgress } from "../../utils/progress";
+import { useAppDispatch, useAppSelector } from "../../../store/hooks";
+import { selectLesson } from "../../../features/learning/learningSlice";
+import type { Module, Lesson } from "../../../types";
+import { calculateLessonProgress } from "../../../utils/progress";
 
 
 interface LessonSidebarProps {

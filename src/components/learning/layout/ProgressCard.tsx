@@ -1,16 +1,13 @@
 import { Target } from "lucide-react";
-import { useAppSelector } from "../../store/hooks";
-import type { Module } from "../../types";
-import { calculateModuleProgress } from "../../utils/progress";
+import { useAppSelector } from "../../../store/hooks";
+import type { Module } from "../../../types";
+import { calculateModuleProgress } from "../../../utils/progress";
 
 export default function ProgressCard({ module }: { module?: Module }) {
   const { allModules, selectedModuleId, progress } = useAppSelector((state) => state.learning);
   const activeModule = module || allModules.find((m) => m.id === selectedModuleId) || allModules[0];
 
   const { percentage: overallPct, completedCount, totalCount } = calculateModuleProgress(activeModule?.lessons || [], progress, !!activeModule?.submissionUrl);
-
-
-
 
   return (
     <div className="space-y-4">
@@ -21,9 +18,6 @@ export default function ProgressCard({ module }: { module?: Module }) {
           </h3>
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 truncate max-w-[180px]">
             {completedCount} dari {totalCount} Materi Selesai
-
-
-
           </p>
         </div>
         <div className="text-lg font-black text-primary">{overallPct}%</div>

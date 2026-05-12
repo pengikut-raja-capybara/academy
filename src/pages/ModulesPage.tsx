@@ -1,9 +1,10 @@
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { useNavigate } from "react-router";
-import { selectModule, fetchModuleDetail } from "../features/learning/learningSlice";
+import { selectModule } from "../features/learning/learningSlice";
+import { useModulePreloader } from "../hooks/useModulePreloader";
 import { Trophy, ArrowRight, Search, Sparkles, BookOpen } from "lucide-react";
 
-import { memo, useState, useCallback, useMemo, useEffect } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import type { Module, ModuleWithProgress } from "../types";
 import { resolveAssetUrl } from "../services/cms";
 import { calculateModuleProgress } from "../utils/progress";
@@ -97,14 +98,7 @@ export default function ModulesPage() {
   const dispatch = useAppDispatch();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Auto-fetch module details for modules without lessons
-  useEffect(() => {
-    allModules.forEach((mod) => {
-      if (!mod.lessons || mod.lessons.length === 0) {
-        dispatch(fetchModuleDetail(mod.slug));
-      }
-    });
-  }, [allModules, dispatch]);
+  useModulePreloader();
 
   // Calculate progress for each module with memoization
   const moduleProgress = useMemo(() => {

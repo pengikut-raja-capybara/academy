@@ -1,6 +1,6 @@
 import { useState, memo } from "react";
 import { ChevronRight, HelpCircle, Trophy } from "lucide-react";
-import type { Lesson } from "../../types";
+import type { Lesson } from "../../../types";
 
 interface QuizPlayerProps {
   lesson: Lesson;

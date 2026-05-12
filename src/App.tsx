@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, Routes, Route, Navigate } from "react-router";
 
-import { useAppDispatch } from "./store/hooks";
-import { fetchModules } from "./features/learning/learningSlice";
 import Layout from "./components/common/Layout";
 import LandingPage from "./pages/LandingPage";
 import LearningPage from "./pages/LearningPage";
@@ -12,12 +10,25 @@ import AboutPage from "./pages/AboutPage";
 import RoadmapPage from "./pages/RoadmapPage";
 import DashboardPage from "./pages/DashboardPage";
 import GreetingPage from "./pages/GreetingPage";
-import { useAppSelector } from "./store/hooks";
+import { useAppDispatch, useAppSelector } from "./store/hooks";
+import { fetchModules, initializeState } from "./features/learning/learningSlice";
+
+import { ToastProvider } from "./context/ToastContext";
 
 function App() {
-  const theme = useAppSelector((state) => state.learning.theme);
+  const { theme, isInitialized } = useAppSelector((state) => state.learning);
   const dispatch = useAppDispatch();
   const location = useLocation();
+
+  useEffect(() => {
+    dispatch(initializeState());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (isInitialized) {
+      dispatch(fetchModules());
+    }
+  }, [dispatch, isInitialized]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -25,13 +36,18 @@ function App() {
     root.classList.add(theme);
   }, [theme]);
 
-  useEffect(() => {
-    dispatch(fetchModules());
-  }, [dispatch]);
+  // Prevent UI flicker while loading saved state
+  if (!isInitialized) {
+    return (
+      <div className="flex h-[100dvh] items-center justify-center bg-background">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // Render app with conditional Layout for GreetingPage
   return (
-    <>
+    <ToastProvider>
       <Routes>
         <Route path="/welcome" element={<GreetingPage />} />
         <Route
@@ -52,7 +68,7 @@ function App() {
           }
         />
       </Routes>
-    </>
+    </ToastProvider>
   );
 }
 

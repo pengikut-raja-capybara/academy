@@ -4,25 +4,18 @@ import { ChevronRight, BookOpen, Zap, BarChart3, Lock, Smile, Sparkles, Upload, 
 import ConfirmDialog from "../components/common/ConfirmDialog";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { importProgress as importProgressAction } from "../features/learning/learningSlice";
-import { ToastContainer } from "../components/common/Toast";
-import type { Toast } from "../components/common/Toast";
+import { useToast } from "../context/ToastContext";
 
 export default function LandingPage() {
   const progress = useAppSelector((state) => state.learning.progress);
   const userName = useAppSelector((state) => state.learning.userName);
   const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [toasts, setToasts] = useState<(Toast & { id: string })[]>([]);
+  const { addToast } = useToast();
   const [importLoading, setImportLoading] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
 
   const hasAnyProgress = Object.values(progress).some((p) => p && (p.completed || (p.lastWatchedSec ?? 0) > 0 || Object.keys(p.checklist || {}).length > 0));
-
-  const addToast = (type: "success" | "error" | "info", title: string, description?: string) => {
-    const id = `${Date.now()}-${Math.random()}`;
-    setToasts((prev) => [...prev, { id, type, title, description, duration: type === "error" ? 6000 : 4000, onClose: () => {} }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), type === "error" ? 6000 : 4000);
-  };
 
   const ctaBase = "inline-flex items-center gap-2 font-extrabold py-4 sm:py-5 px-8 sm:px-10 rounded-2xl w-full sm:w-auto justify-center transition transform active:scale-95";
 
@@ -60,9 +53,6 @@ export default function LandingPage() {
 
   return (
     <div className="space-y-0 pb-20">
-      {/* Toasts */}
-      <ToastContainer toasts={toasts} onClose={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
-
       {/* Banner moved below hero (see below) */}
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden py-20 bg-background">

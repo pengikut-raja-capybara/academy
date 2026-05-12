@@ -1,6 +1,8 @@
-import { createSlice, createAsyncThunk, type PayloadAction, current } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import type { Module, ProgressMap, Theme } from "../../types";
 import { fetchModuleIndex, fetchModuleBySlug } from "../../services/cms";
+import localforage from "localforage";
+import { PERSISTENCE_KEY } from "../../store/persistence";
 
 interface LearningState {
   allModules: Module[];
@@ -12,9 +14,12 @@ interface LearningState {
   selectedLessonId: string;
   theme: Theme;
   userName: string | null;
+  isInitialized: boolean;
 }
 
-const STORAGE_KEY = "capybara_academy_state";
+export const initializeState = createAsyncThunk('learning/initializeState', async () => {
+  return await localforage.getItem<Partial<LearningState>>(PERSISTENCE_KEY);
+});
 
 export const fetchModules = createAsyncThunk('learning/fetchModules', async () => {
   return await fetchModuleIndex();
@@ -24,29 +29,17 @@ export const fetchModuleDetail = createAsyncThunk('learning/fetchModuleDetail', 
   return await fetchModuleBySlug(slug);
 });
 
-const loadState = (): Partial<LearningState> => {
-  try {
-    const serialized = localStorage.getItem(STORAGE_KEY);
-    if (serialized === null) return {};
-    return JSON.parse(serialized);
-  } catch {
-    return {};
-  }
-};
-
-const savedState = loadState();
-
 const initialState: LearningState = {
-  allModules: savedState.allModules || [], 
+  allModules: [],
   status: 'idle',
-
   detailStatus: {},
   error: null,
-  selectedModuleId: savedState.selectedModuleId || "",
-  progress: savedState.progress || {},
-  selectedLessonId: savedState.selectedLessonId || "",
-  theme: savedState.theme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
-  userName: savedState.userName || null,
+  selectedModuleId: "",
+  progress: {},
+  selectedLessonId: "",
+  theme: (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") as Theme,
+  userName: null,
+  isInitialized: false,
 };
 
 export const learningSlice = createSlice({
@@ -55,11 +48,9 @@ export const learningSlice = createSlice({
   reducers: {
     selectModule: (state, action: PayloadAction<string>) => {
       state.selectedModuleId = action.payload;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     selectLesson: (state, action: PayloadAction<string>) => {
       state.selectedLessonId = action.payload;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     updateProgress: (state, action: PayloadAction<{ videoId: string; second: number; duration: number }>) => {
       const { videoId, second, duration } = action.payload;
@@ -102,7 +93,6 @@ export const learningSlice = createSlice({
         state.progress[lesson.id].completed = true;
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     setVideoAvailability: (state, action: PayloadAction<{ lessonId: string; available: boolean }>) => {
       const { lessonId, available } = action.payload;
@@ -112,7 +102,6 @@ export const learningSlice = createSlice({
 
       state.progress[lessonId].videoUnavailable = !available;
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     importProgress: (state, action: PayloadAction<any>) => {
       const payload = action.payload;
@@ -131,15 +120,12 @@ export const learningSlice = createSlice({
       state.progress = { ...rawProgress };
       
       // 3. Persist everything
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     toggleTheme: (state) => {
       state.theme = state.theme === "light" ? "dark" : "light";
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     setTheme: (state, action: PayloadAction<Theme>) => {
       state.theme = action.payload;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     toggleChecklistItem: (state, action: PayloadAction<{ lessonId: string; itemIndex: number }>) => {
       const { lessonId, itemIndex } = action.payload;
@@ -166,7 +152,6 @@ export const learningSlice = createSlice({
         state.progress[lessonId].completed = videoCompleted && checklistCompleted;
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     completeExercise: (state, action: PayloadAction<{ lessonId: string; answers?: Record<number, number>; score?: number }>) => {
       const { lessonId, answers, score } = action.payload;
@@ -188,7 +173,6 @@ export const learningSlice = createSlice({
       if (answers) state.progress[lessonId].quizAnswers = answers;
       if (score !== undefined) state.progress[lessonId].quizScore = score;
       state.progress[lessonId].completed = true;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     resetExercise: (state, action: PayloadAction<string>) => {
       const lessonId = action.payload;
@@ -198,15 +182,25 @@ export const learningSlice = createSlice({
         delete state.progress[lessonId].quizAnswers;
         delete state.progress[lessonId].quizScore;
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
     setUserName: (state, action: PayloadAction<string>) => {
       state.userName = action.payload;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current(state)));
     },
   },
   extraReducers: (builder) => {
     builder
+      .addCase(initializeState.fulfilled, (state, action) => {
+        if (action.payload) {
+          const saved = action.payload;
+          if (saved.allModules) state.allModules = saved.allModules;
+          if (saved.progress) state.progress = saved.progress;
+          if (saved.selectedModuleId) state.selectedModuleId = saved.selectedModuleId;
+          if (saved.selectedLessonId) state.selectedLessonId = saved.selectedLessonId;
+          if (saved.theme) state.theme = saved.theme;
+          if (saved.userName) state.userName = saved.userName;
+        }
+        state.isInitialized = true;
+      })
       .addCase(fetchModules.pending, (state) => {
         state.status = 'loading';
       })

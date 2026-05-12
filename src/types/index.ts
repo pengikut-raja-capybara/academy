@@ -44,19 +44,18 @@ export type Module = {
   color?: string;
 };
 
-export type ProgressMap = Record<
-  string,
-  {
-    seen: Record<number, boolean>;
-    lastWatchedSec: number;
-    duration?: number;
-    completed: boolean;
-    videoUnavailable?: boolean;
-    checklist: Record<string, boolean>; // taskIndex/id -> completed
-    quizAnswers?: Record<number, number>; // questionIndex -> selectedOptionIndex
-    quizScore?: number;
-  }
->;
+export type Progress = {
+  seen: Record<number, boolean>;
+  lastWatchedSec: number;
+  duration?: number;
+  completed: boolean;
+  videoUnavailable?: boolean;
+  checklist: Record<string, boolean>; // taskIndex/id -> completed
+  quizAnswers?: Record<number, number>; // questionIndex -> selectedOptionIndex
+  quizScore?: number;
+};
+
+export type ProgressMap = Record<string, Progress>;
 
 export type Theme = "light" | "dark";
 
