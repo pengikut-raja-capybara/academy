@@ -11,36 +11,34 @@ function ensureYouTubeApiLoaded(onReady: () => void) {
   }
 
   ytReadyCallbacks.push(onReady);
-
   if (ytScriptLoading) return;
-  
-  // Check if script tag already exists but API not ready
+
   const existingTag = document.querySelector('script[src*="youtube.com/iframe_api"]');
+  // Jika ada tag tapi YT belum ready, hapus tag lama dan muat ulang
   if (existingTag) {
-    ytScriptLoading = true;
-    return;
+    existingTag.remove();
   }
 
   ytScriptLoading = true;
 
   const tag = document.createElement("script");
   tag.src = "https://www.youtube.com/iframe_api";
+
+  // Tambahkan ini untuk kestabilan di Production
+  tag.async = true;
+
   tag.onerror = () => {
     console.error("Failed to load YouTube IFrame API script");
     ytScriptLoading = false;
-    // We don't clear callbacks here, maybe they'll work on next attempt
+    tag.remove(); // Bersihkan tag yang gagal
   };
 
-  const firstScriptTag = document.getElementsByTagName("script")[0];
-  if (firstScriptTag && firstScriptTag.parentNode) {
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-  } else {
-    document.head.appendChild(tag);
-  }
+  document.head.appendChild(tag);
 
   const prev = window.onYouTubeIframeAPIReady;
   window.onYouTubeIframeAPIReady = () => {
     if (prev) prev();
+    ytScriptLoading = false; // Reset state saat berhasil
     const callbacks = ytReadyCallbacks.splice(0);
     callbacks.forEach((cb) => cb());
   };
